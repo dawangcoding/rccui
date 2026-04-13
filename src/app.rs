@@ -44,10 +44,10 @@ pub fn App() -> impl IntoView {
             <h1 class="text-3xl font-bold text-foreground">"Welcome to Tauri + Leptos + Rust/UI"</h1>
 
             <div class="flex items-center gap-8">
-                <a href="https://tauri.app" target="_blank" class="transition-opacity hover:opacity-80">
+                <a href="https://tauri.app" target="_blank" class="p-2 rounded-lg transition-all duration-300 hover:bg-muted hover:scale-105">
                     <img src="public/tauri.svg" class="w-24 h-24" alt="Tauri logo"/>
                 </a>
-                <a href="https://docs.rs/leptos/" target="_blank" class="transition-opacity hover:opacity-80">
+                <a href="https://docs.rs/leptos/" target="_blank" class="p-2 rounded-lg transition-all duration-300 hover:bg-muted hover:scale-105">
                     <img src="public/leptos.svg" class="w-24 h-24" alt="Leptos logo"/>
                 </a>
             </div>
