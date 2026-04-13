@@ -87,6 +87,85 @@ pub async fn complete_onboarding() -> Result<Value, String> {
     call_no_args("complete_onboarding").await
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct RenameSessionArgs {
+    session_id: String,
+    body: RenameSessionBody,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct RenameSessionBody {
+    summary: String,
+    provider: Option<String>,
+}
+
+pub async fn rename_session(
+    session_id: &str,
+    summary: &str,
+    provider: Option<&str>,
+) -> Result<Value, String> {
+    let args = RenameSessionArgs {
+        session_id: session_id.to_string(),
+        body: RenameSessionBody {
+            summary: summary.to_string(),
+            provider: provider.map(|s| s.to_string()),
+        },
+    };
+    call("rename_session", &args).await
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct DeleteSessionArgs {
+    session_id: String,
+    provider: Option<String>,
+    project_name: Option<String>,
+}
+
+pub async fn delete_session(
+    session_id: &str,
+    provider: Option<&str>,
+    project_name: Option<&str>,
+) -> Result<Value, String> {
+    let args = DeleteSessionArgs {
+        session_id: session_id.to_string(),
+        provider: provider.map(|s| s.to_string()),
+        project_name: project_name.map(|s| s.to_string()),
+    };
+    call("delete_session", &args).await
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct SetSessionNameArgs {
+    session_id: String,
+    body: SetSessionNameBody,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct SetSessionNameBody {
+    name: String,
+    provider: Option<String>,
+}
+
+pub async fn set_session_name(
+    session_id: &str,
+    name: &str,
+    provider: Option<&str>,
+) -> Result<Value, String> {
+    let args = SetSessionNameArgs {
+        session_id: session_id.to_string(),
+        body: SetSessionNameBody {
+            name: name.to_string(),
+            provider: provider.map(|s| s.to_string()),
+        },
+    };
+    call("set_session_name", &args).await
+}
+
 // ─── Chat Commands ───────────────────────────────────────────────────────────
 
 pub async fn chat_execute(command: Value) -> Result<Value, String> {

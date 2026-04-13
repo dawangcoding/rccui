@@ -11,7 +11,7 @@ use super::sidebar::Sidebar;
 #[component]
 pub fn AppLayout() -> impl IntoView {
     view! {
-        <SidenavWrapper class="h-screen overflow-hidden">
+        <SidenavWrapper class="h-screen overflow-hidden" attr:style="--sidenav-width:16rem;">
             <Sidebar />
             <SidenavInset>
                 <MainHeader />

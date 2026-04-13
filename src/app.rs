@@ -8,14 +8,22 @@ use crate::pages::dashboard::DashboardPage;
 use crate::pages::onboarding::OnboardingPage;
 use crate::pages::project::ProjectPage;
 use crate::pages::settings::SettingsPage;
-use crate::state::AppContext;
-use crate::tauri::commands;
+use crate::hooks::use_theme_mode::ThemeMode;
+use crate::state::{AppContext, SessionContext};
+use crate::tauri::{commands, events};
 
 #[component]
 pub fn App() -> impl IntoView {
+    // Initialize theme mode (must be before any component that uses ThemeToggle)
+    let _theme = ThemeMode::init();
+
     // Create global application state
     let ctx = AppContext::new();
     provide_context(ctx);
+
+    // Create session context
+    let session_ctx = SessionContext::new();
+    provide_context(session_ctx);
 
     // Load projects on mount
     spawn_local(async move {
@@ -43,6 +51,29 @@ pub fn App() -> impl IntoView {
                 );
             }
         }
+    });
+
+    // Listen for projects_updated events from the file watcher
+    spawn_local(async move {
+        let _unlisten = events::listen_projects_updated(move |_payload| {
+            // Re-fetch projects when the file watcher detects changes
+            spawn_local(async move {
+                match commands::list_projects(true).await {
+                    Ok(projects) => {
+                        ctx.projects.set(projects);
+                    }
+                    Err(e) => {
+                        web_sys::console::error_1(
+                            &format!("Failed to refresh projects: {e}").into(),
+                        );
+                    }
+                }
+            });
+        })
+        .await;
+        // Keep the unlisten handle alive for the lifetime of the app
+        // by leaking it (it should never be dropped)
+        std::mem::forget(_unlisten);
     });
 
     view! {

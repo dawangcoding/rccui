@@ -21,12 +21,31 @@ pub fn ProjectPage() -> impl IntoView {
                         </div>
                     }.into_any(),
                     Some(project) => {
+                        let selected_session = ctx.selected_session.get();
+                        let session_display = selected_session
+                            .as_ref()
+                            .map(|s| {
+                                s.name
+                                    .clone()
+                                    .unwrap_or_else(|| s.summary.clone())
+                            })
+                            .unwrap_or_default();
+
                         match tab {
                             AppTab::Chat => view! {
-                                <div class="flex items-center justify-center h-full text-sm text-muted-foreground">
+                                <div class="flex flex-col items-center justify-center h-full gap-3 text-sm text-muted-foreground">
                                     <div class="text-center">
-                                        <p class="font-medium text-foreground">{project.display_name.clone()}</p>
-                                        <p class="mt-1">"Chat - Coming in Phase 2"</p>
+                                        <p class="font-medium text-foreground text-base">{project.display_name.clone()}</p>
+                                        {if !session_display.is_empty() {
+                                            Some(view! {
+                                                <p class="mt-1 text-xs text-muted-foreground max-w-sm truncate">
+                                                    "Session: " {session_display}
+                                                </p>
+                                            })
+                                        } else {
+                                            None
+                                        }}
+                                        <p class="mt-3 text-xs">"Chat - Coming in Phase 2"</p>
                                     </div>
                                 </div>
                             }.into_any(),
