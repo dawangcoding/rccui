@@ -27,10 +27,11 @@ impl ThemeMode {
 
         provide_context(theme_mode);
 
-        // Use Effect to handle browser-only initialization
+        // Use Effect to handle browser-only initialization and DOM sync
         Effect::new(move |_| {
             let initial = Self::get_storage_state().unwrap_or(Self::prefers_dark_mode());
             theme_mode.state.set(initial);
+            Self::apply_to_dom(initial);
         });
 
         theme_mode
@@ -40,6 +41,7 @@ impl ThemeMode {
         self.state.update(|state| {
             *state = !*state;
             Self::set_storage_state(*state);
+            Self::apply_to_dom(*state);
         });
     }
 
@@ -55,6 +57,7 @@ impl ThemeMode {
     pub fn set(&self, dark: bool) {
         self.state.set(dark);
         Self::set_storage_state(dark);
+        Self::apply_to_dom(dark);
     }
 
     #[must_use]
@@ -103,6 +106,18 @@ impl ThemeMode {
     fn set_storage_state(state: bool) {
         if let Some(storage) = Self::get_storage() {
             storage.set(LOCALSTORAGE_KEY, state.to_string().as_str()).ok();
+        }
+    }
+
+    /// Applies or removes the `dark` class on the document root element (`<html>`).
+    fn apply_to_dom(dark: bool) {
+        if let Some(root) = window().document().and_then(|d| d.document_element()) {
+            let class_list = root.class_list();
+            if dark {
+                let _ = class_list.add_1("dark");
+            } else {
+                let _ = class_list.remove_1("dark");
+            }
         }
     }
 }
