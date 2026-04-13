@@ -11,21 +11,36 @@ pub const TEMPLATE_STYLES: &str = r#"
 
     --leptoaster-progress-height: 2px;
 
-    --leptoaster-info-background-color: #ffffff;
-    --leptoaster-info-border-color: #222222;
-    --leptoaster-info-text-color: #222222;
+    --leptoaster-info-background-color: var(--background, #ffffff);
+    --leptoaster-info-border-color: var(--foreground, #222222);
+    --leptoaster-info-text-color: var(--foreground, #222222);
 
-    --leptoaster-success-background-color: #4caf50;
-    --leptoaster-success-border-color: #2e7d32;
+    --leptoaster-success-background-color: oklch(0.65 0.2 145);
+    --leptoaster-success-border-color: oklch(0.55 0.2 145);
     --leptoaster-success-text-color: #ffffff;
 
-    --leptoaster-warn-background-color: #ff9800;
-    --leptoaster-warn-border-color: #ff8f00;
+    --leptoaster-warn-background-color: oklch(0.75 0.18 85);
+    --leptoaster-warn-border-color: oklch(0.65 0.18 85);
     --leptoaster-warn-text-color: #ffffff;
 
-    --leptoaster-error-background-color: #f44336;
-    --leptoaster-error-border-color: #c62828;
+    --leptoaster-error-background-color: oklch(0.63 0.24 27);
+    --leptoaster-error-border-color: oklch(0.53 0.24 27);
     --leptoaster-error-text-color: #ffffff;
+}
+
+.dark {
+    --leptoaster-info-background-color: var(--card, #1a1a1a);
+    --leptoaster-info-border-color: var(--border, rgba(255 255 255 / 10%));
+    --leptoaster-info-text-color: var(--foreground, #fafafa);
+
+    --leptoaster-success-background-color: oklch(0.55 0.18 145);
+    --leptoaster-success-border-color: oklch(0.45 0.16 145);
+
+    --leptoaster-warn-background-color: oklch(0.65 0.16 85);
+    --leptoaster-warn-border-color: oklch(0.55 0.14 85);
+
+    --leptoaster-error-background-color: oklch(0.55 0.22 27);
+    --leptoaster-error-border-color: oklch(0.45 0.2 27);
 }
 
 .leptoaster-stack-container-bottom:hover > div,

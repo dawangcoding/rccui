@@ -102,7 +102,7 @@ pub fn SessionItem(
 fn ProviderIcon(provider: String) -> impl IntoView {
     match provider.as_str() {
         "claude" => view! {
-            <svg viewBox="0 0 24 24" class="size-3.5 text-[#D97757]" fill="currentColor">
+            <svg viewBox="0 0 24 24" class="size-3.5 text-provider-claude" fill="currentColor">
                 <path d="M16.1 11.3c0-3.2-2.5-5.3-5.3-5.3a5.5 5.5 0 0 0-5.5 5.5c0 3 2.3 5.5 5.5 5.5 2.8 0 5.3-2.1 5.3-5.3V11.3zM12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2z"/>
             </svg>
         }.into_any(),
@@ -113,13 +113,13 @@ fn ProviderIcon(provider: String) -> impl IntoView {
             </svg>
         }.into_any(),
         "codex" => view! {
-            <svg viewBox="0 0 24 24" class="size-3.5 text-[#10A37F]" fill="currentColor">
+            <svg viewBox="0 0 24 24" class="size-3.5 text-provider-codex" fill="currentColor">
                 <circle cx="12" cy="12" r="10"/>
                 <path d="M12 8v8M8 12h8" stroke="white" stroke-width="2"/>
             </svg>
         }.into_any(),
         "gemini" => view! {
-            <svg viewBox="0 0 24 24" class="size-3.5 text-[#4285F4]" fill="currentColor">
+            <svg viewBox="0 0 24 24" class="size-3.5 text-provider-gemini" fill="currentColor">
                 <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
             </svg>
         }.into_any(),

@@ -45,8 +45,6 @@ pub fn Carousel(
 
     view! {
         <Provider value=ctx>
-            <style>"[data-carousel-scroll]::-webkit-scrollbar { display: none; }"</style>
-
             <div
                 data-name="Carousel"
                 data-carousel-id=carousel_id.clone()
@@ -168,10 +166,10 @@ pub fn CarouselContent(children: Children, #[prop(optional, into)] class: String
 
     let (scroll_class, inner_class) = match ctx.orientation {
         CarouselOrientation::Horizontal => {
-            ("overflow-x-auto snap-x snap-mandatory scroll-smooth", tw_merge!("flex -ml-4", class))
+            ("overflow-x-auto snap-x snap-mandatory scroll-smooth no__scrollbar", tw_merge!("flex -ml-4", class))
         }
         CarouselOrientation::Vertical => {
-            ("overflow-y-auto snap-y snap-mandatory scroll-smooth", tw_merge!("flex flex-col -mt-4", class))
+            ("overflow-y-auto snap-y snap-mandatory scroll-smooth no__scrollbar", tw_merge!("flex flex-col -mt-4", class))
         }
     };
 
@@ -179,7 +177,6 @@ pub fn CarouselContent(children: Children, #[prop(optional, into)] class: String
         <div
             data-carousel-scroll=carousel_id
             class=scroll_class
-            style="scrollbar-width: none; -ms-overflow-style: none;"
         >
             <div class=inner_class>{children()}</div>
         </div>

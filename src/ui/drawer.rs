@@ -126,7 +126,7 @@ pub fn DrawerContent(
 pub fn DrawerHandle() -> impl IntoView {
     view! {
         <div
-            class="block relative mx-auto mb-8 w-8 rounded-2xl opacity-70 hover:opacity-100 active:opacity-100 shrink-0 bg-[#e2e2e4] h-[5px]"
+            class="block relative mx-auto mb-8 w-8 rounded-2xl opacity-70 hover:opacity-100 active:opacity-100 shrink-0 bg-muted-foreground/25 h-[5px]"
             data-vaul-handle=""
         >
             <span data-vaul-handle-hitarea=""></span>
