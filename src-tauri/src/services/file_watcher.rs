@@ -66,13 +66,7 @@ async fn run_watcher(state: Arc<AppState>) -> anyhow::Result<()> {
     // Keep the debouncer alive
     let _debouncer = debouncer;
 
-    let mut rescan_in_progress = false;
-
     while let Some(event) = rx.recv().await {
-        if rescan_in_progress {
-            continue;
-        }
-
         let changed_file = event.path.to_string_lossy().to_string();
 
         let watch_provider = watch_dirs
@@ -85,7 +79,6 @@ async fn run_watcher(state: Arc<AppState>) -> anyhow::Result<()> {
             "File change detected: {changed_file} (provider: {watch_provider})"
         );
 
-        rescan_in_progress = true;
         tracing::debug!("Clearing project cache and starting rescan");
         project_scanner::clear_project_directory_cache();
 
@@ -110,8 +103,6 @@ async fn run_watcher(state: Arc<AppState>) -> anyhow::Result<()> {
             watch_provider: Some(watch_provider),
             projects: projects_json,
         });
-
-        rescan_in_progress = false;
     }
 
     Ok(())

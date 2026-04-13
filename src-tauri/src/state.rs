@@ -5,7 +5,7 @@ use std::sync::Arc;
 use dashmap::DashMap;
 use portable_pty::MasterPty;
 use sqlx::SqlitePool;
-use tokio::sync::{Mutex, RwLock, mpsc};
+use tokio::sync::{Mutex, RwLock};
 
 use crate::config::AppConfig;
 
@@ -20,7 +20,7 @@ pub struct ActiveSession {
 /// Maximum number of entries in the PTY circular replay buffer.
 pub const PTY_BUFFER_CAP: usize = 5000;
 
-/// PTY session for interactive shell WebSocket.
+/// PTY session for interactive shell.
 pub struct PtySession {
     /// PTY master handle — used for resize operations.
     pub master: Box<dyn MasterPty + Send>,
@@ -38,7 +38,7 @@ pub struct PtySession {
     pub buffer: VecDeque<String>,
     /// Background task that reads from PTY stdout and forwards output.
     pub reader_handle: Option<tokio::task::JoinHandle<()>>,
-    /// Delayed cleanup task (spawned on WebSocket disconnect, cancelled on reconnect).
+    /// Delayed cleanup task (spawned on detach, cancelled on reconnect).
     pub cleanup_handle: Option<tokio::task::JoinHandle<()>>,
 }
 
