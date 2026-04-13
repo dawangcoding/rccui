@@ -41,7 +41,7 @@ pub fn App() -> impl IntoView {
 
     view! {
         <main class="flex flex-col items-center justify-center min-h-screen p-8 gap-6 bg-background">
-            <h1 class="text-3xl font-bold text-foreground">"Welcome to Tauri + Leptos"</h1>
+            <h1 class="text-3xl font-bold text-foreground">"Welcome to Tauri + Leptos + Rust/UI"</h1>
 
             <div class="flex items-center gap-8">
                 <a href="https://tauri.app" target="_blank" class="transition-opacity hover:opacity-80">
