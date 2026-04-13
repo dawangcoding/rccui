@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "tauri-leptos-rustui-starter",
+  "productName": "rccui",
   "version": "0.1.0",
-  "identifier": "lzmcoding.tauri-leptos-rustui-starter",
+  "identifier": "lzmcoding.rccui",
   "build": {
     "beforeDevCommand": "trunk serve",
     "devUrl": "http://localhost:1420",
@@ -13,7 +13,7 @@
     "withGlobalTauri": true,
     "windows": [
       {
-        "title": "tauri-leptos-rustui-starter",
+        "title": "RCCUI",
         "width": 800,
         "height": 600
       }
