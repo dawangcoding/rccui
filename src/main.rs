@@ -1,8 +1,13 @@
 mod app;
-mod ui;
-mod hooks;
-mod utils;
 mod constants;
+mod features;
+mod hooks;
+mod layout;
+mod pages;
+mod state;
+mod tauri;
+mod ui;
+mod utils;
 
 use app::*;
 use leptos::prelude::*;

@@ -1,77 +1,65 @@
+use leptos::prelude::*;
 use leptos::task::spawn_local;
-use leptos::{ev::SubmitEvent, prelude::*};
-use serde::{Deserialize, Serialize};
-use wasm_bindgen::prelude::*;
+use leptos_router::components::{ParentRoute, Route, Router, Routes};
+use leptos_router::path;
 
-use crate::ui::{
-    button::Button,
-    card::{Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle},
-    input::Input,
-};
-
-#[wasm_bindgen]
-extern "C" {
-    #[wasm_bindgen(js_namespace = ["window", "__TAURI__", "core"])]
-    async fn invoke(cmd: &str, args: JsValue) -> JsValue;
-}
-
-#[derive(Serialize, Deserialize)]
-struct GreetArgs<'a> {
-    name: &'a str,
-}
+use crate::layout::AppLayout;
+use crate::pages::dashboard::DashboardPage;
+use crate::pages::onboarding::OnboardingPage;
+use crate::pages::project::ProjectPage;
+use crate::pages::settings::SettingsPage;
+use crate::state::AppContext;
+use crate::tauri::commands;
 
 #[component]
 pub fn App() -> impl IntoView {
-    let name = RwSignal::new(String::new());
-    let (greet_msg, set_greet_msg) = signal(String::new());
+    // Create global application state
+    let ctx = AppContext::new();
+    provide_context(ctx);
 
-    let greet = move |ev: SubmitEvent| {
-        ev.prevent_default();
-        spawn_local(async move {
-            let name = name.get_untracked();
-            if name.is_empty() {
-                return;
+    // Load projects on mount
+    spawn_local(async move {
+        ctx.projects_loading.set(true);
+        match commands::list_projects(false).await {
+            Ok(projects) => {
+                ctx.projects.set(projects);
             }
+            Err(e) => {
+                web_sys::console::error_1(&format!("Failed to load projects: {e}").into());
+            }
+        }
+        ctx.projects_loading.set(false);
+    });
 
-            let args = serde_wasm_bindgen::to_value(&GreetArgs { name: &name }).unwrap();
-            let new_msg = invoke("greet", args).await.as_string().unwrap();
-            set_greet_msg.set(new_msg);
-        });
-    };
+    // Check onboarding status
+    spawn_local(async move {
+        match commands::get_onboarding_status().await {
+            Ok(status) => {
+                ctx.onboarding_complete.set(status.has_completed_onboarding);
+            }
+            Err(e) => {
+                web_sys::console::error_1(
+                    &format!("Failed to check onboarding: {e}").into(),
+                );
+            }
+        }
+    });
 
     view! {
-        <main class="flex flex-col items-center justify-center min-h-screen p-8 gap-6 bg-background">
-            <h1 class="text-3xl font-bold text-foreground">"Welcome to Tauri + Leptos + Rust/UI"</h1>
-
-            <div class="flex items-center gap-8">
-                <a href="https://tauri.app" target="_blank" class="p-2 rounded-lg transition-all duration-300 hover:bg-muted hover:scale-105">
-                    <img src="public/tauri.svg" class="w-24 h-24" alt="Tauri logo"/>
-                </a>
-                <a href="https://docs.rs/leptos/" target="_blank" class="p-2 rounded-lg transition-all duration-300 hover:bg-muted hover:scale-105">
-                    <img src="public/leptos.svg" class="w-24 h-24" alt="Leptos logo"/>
-                </a>
-            </div>
-
-            <p class="text-muted-foreground">"Click on the Tauri and Leptos logos to learn more."</p>
-
-            <Card class="w-full max-w-md border-transparent shadow-none">
-                <CardContent class="pt-6">
-                    <form class="flex items-center gap-4" on:submit=greet>
-                        <Input
-                            id="greet-input"
-                            placeholder="Enter a name..."
-                            bind_value=name
-                            class="flex-1"
-                        />
-                        <Button attr:r#type="submit">
-                            "Greet"
-                        </Button>
-                    </form>
-                </CardContent>
-                <CardFooter>
-                    <p class="text-lg text-foreground">{ move || greet_msg.get() }</p>
-                </CardFooter>
-            </Card>
-        </main>
+        <Router>
+            <Routes fallback=|| view! {
+                <div class="flex items-center justify-center h-screen text-sm text-muted-foreground">
+                    "Page not found"
+                </div>
+            }>
+                // Main layout with sidebar wraps all pages
+                <ParentRoute path=path!("") view=AppLayout>
+                    <Route path=path!("/") view=DashboardPage />
+                    <Route path=path!("/project/:name") view=ProjectPage />
+                    <Route path=path!("/settings") view=SettingsPage />
+                    <Route path=path!("/onboarding") view=OnboardingPage />
+                </ParentRoute>
+            </Routes>
+        </Router>
     }
 }
