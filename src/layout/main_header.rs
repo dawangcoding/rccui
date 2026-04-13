@@ -1,8 +1,22 @@
 use leptos::prelude::*;
 
+use icons::{MessageSquare, SquareTerminal, FolderOpen, GitBranch};
+
 use crate::state::AppContext;
 use crate::tauri::types::AppTab;
 use crate::ui::sidenav::SidenavTrigger;
+use crate::ui::tooltip::{Tooltip, TooltipContent, TooltipPosition};
+
+/// Tab icon component matching each AppTab variant.
+#[component]
+fn TabIcon(tab: AppTab) -> impl IntoView {
+    match tab {
+        AppTab::Chat => view! { <MessageSquare class="size-3.5" /> }.into_any(),
+        AppTab::Shell => view! { <SquareTerminal class="size-3.5" /> }.into_any(),
+        AppTab::Files => view! { <FolderOpen class="size-3.5" /> }.into_any(),
+        AppTab::Git => view! { <GitBranch class="size-3.5" /> }.into_any(),
+    }
+}
 
 /// Header bar for the main content area.
 /// Shows: [SidenavTrigger] [Project Name] [Tab Switcher]
@@ -38,24 +52,42 @@ pub fn MainHeader() -> impl IntoView {
             <div class="flex-1"/>
 
             // Tab buttons
-            <nav class="flex items-center gap-0.5 bg-muted rounded-lg p-0.5 h-8">
+            <nav class="flex items-center gap-0.5 bg-muted rounded-lg p-0.5 h-9">
                 {tabs.into_iter().map(|tab| {
                     let label = tab.label();
                     let is_active = Memo::new(move |_| ctx.active_tab.get() == tab);
-                    view! {
+                    let implemented = tab.is_implemented();
+
+                    let btn = view! {
                         <button
                             class=move || {
-                                let base = "px-2.5 py-1 text-xs font-medium rounded-md transition-all cursor-pointer select-none";
+                                let base = "flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer select-none";
                                 if is_active.get() {
                                     format!("{base} bg-background text-foreground shadow-sm")
-                                } else {
+                                } else if implemented {
                                     format!("{base} text-muted-foreground hover:text-foreground")
+                                } else {
+                                    format!("{base} text-muted-foreground hover:text-foreground opacity-50")
                                 }
                             }
                             on:click=move |_| ctx.active_tab.set(tab)
                         >
+                            <TabIcon tab=tab />
                             {label}
                         </button>
+                    };
+
+                    if implemented {
+                        view! { <span>{btn}</span> }.into_any()
+                    } else {
+                        view! {
+                            <Tooltip>
+                                {btn}
+                                <TooltipContent position=TooltipPosition::Bottom>
+                                    "Coming soon"
+                                </TooltipContent>
+                            </Tooltip>
+                        }.into_any()
                     }
                 }).collect_view()}
             </nav>

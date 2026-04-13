@@ -3,6 +3,7 @@ use leptos::task::spawn_local;
 
 use crate::tauri::commands;
 use crate::tauri::types::SessionInfo;
+use crate::ui::toast_custom::toaster::expect_toaster;
 
 // ─── SessionContext ──────────────────────────────────────────────────────────
 
@@ -53,9 +54,7 @@ impl SessionContext {
                     ctx.offset.set(PAGE_SIZE);
                 }
                 Err(e) => {
-                    web_sys::console::error_1(
-                        &format!("Failed to load sessions: {e}").into(),
-                    );
+                    expect_toaster().error(format!("Failed to load sessions: {e}"));
                 }
             }
             ctx.loading.set(false);
@@ -85,9 +84,7 @@ impl SessionContext {
                     ctx.offset.set(current_offset + PAGE_SIZE);
                 }
                 Err(e) => {
-                    web_sys::console::error_1(
-                        &format!("Failed to load more sessions: {e}").into(),
-                    );
+                    expect_toaster().error(format!("Failed to load more sessions: {e}"));
                 }
             }
             ctx.loading.set(false);

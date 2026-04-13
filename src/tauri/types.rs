@@ -263,4 +263,8 @@ impl AppTab {
             AppTab::Git => "Git",
         }
     }
+
+    pub fn is_implemented(&self) -> bool {
+        matches!(self, AppTab::Chat)
+    }
 }

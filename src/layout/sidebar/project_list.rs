@@ -1,11 +1,14 @@
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 
+use icons::Search;
+
 use crate::state::{AppContext, SessionContext};
 use crate::tauri::commands;
 use crate::tauri::types::{Project, SessionInfo};
 use crate::ui::collapsible::{Collapsible, CollapsibleContent, CollapsibleTrigger};
 use crate::ui::skeleton::Skeleton;
+use crate::ui::toast_custom::toaster::expect_toaster;
 
 use super::session_item::SessionItem;
 
@@ -34,17 +37,20 @@ pub fn ProjectList() -> impl IntoView {
 
     view! {
         <div class="flex flex-col h-full">
-            // Search input
+            // Search input with icon
             <div class="px-2 pb-2">
-                <input
-                    type="text"
-                    placeholder="Search projects..."
-                    class="w-full h-8 shadow-none bg-background file:text-foreground placeholder:text-muted-foreground border-input flex min-w-0 rounded-md border bg-transparent px-3 py-1 text-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-2"
-                    prop:value=move || search_query.get()
-                    on:input=move |e| {
-                        search_query.set(event_target_value(&e));
-                    }
-                />
+                <div class="relative">
+                    <Search class="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
+                    <input
+                        type="text"
+                        placeholder="Search projects..."
+                        class="w-full h-8 shadow-none bg-background file:text-foreground placeholder:text-muted-foreground border-input flex min-w-0 rounded-md border bg-transparent pl-8 pr-3 py-1 text-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-2"
+                        prop:value=move || search_query.get()
+                        on:input=move |e| {
+                            search_query.set(event_target_value(&e));
+                        }
+                    />
+                </div>
             </div>
 
             // Project list
@@ -178,7 +184,7 @@ fn ProjectItem(project: Project) -> impl IntoView {
                         // Session count badge
                         {if total_sessions > 0 {
                             Some(view! {
-                                <span class="flex-shrink-0 text-[10px] text-muted-foreground tabular-nums">
+                                <span class="flex-shrink-0 text-[11px] text-muted-foreground tabular-nums">
                                     {total_sessions}
                                 </span>
                             })
@@ -211,7 +217,12 @@ fn SessionList(project_name: String, sessions: Vec<SessionInfo>) -> impl IntoVie
     let renaming_session_id = RwSignal::new(Option::<String>::None);
     let rename_value = RwSignal::new(String::new());
 
+    // Delete confirmation dialog state
+    let deleting_session_id = RwSignal::new(Option::<String>::None);
+    let deleting_provider = RwSignal::new(Option::<String>::None);
+
     let project_name_more = project_name.clone();
+    let project_name_del = project_name.clone();
 
     view! {
         <ul class="flex flex-col gap-0.5 py-1">
@@ -219,7 +230,6 @@ fn SessionList(project_name: String, sessions: Vec<SessionInfo>) -> impl IntoVie
                 let session_id = session.id.clone();
                 let session_clone = session.clone();
                 let provider = session.provider.clone();
-                let project_name_del = project_name.clone();
 
                 let is_session_selected = {
                     let session_id = session_id.clone();
@@ -240,24 +250,8 @@ fn SessionList(project_name: String, sessions: Vec<SessionInfo>) -> impl IntoVie
                 let on_delete = {
                     let provider = provider.clone();
                     Callback::new(move |id: String| {
-                        let provider = provider.clone();
-                        let project_name = project_name_del.clone();
-                        spawn_local(async move {
-                            if let Err(e) = commands::delete_session(
-                                &id,
-                                Some(&provider),
-                                Some(&project_name),
-                            ).await {
-                                web_sys::console::error_1(
-                                    &format!("Failed to delete session: {e}").into(),
-                                );
-                            }
-                            // Reload projects to reflect the deletion
-                            if let Ok(projects) = commands::list_projects(true).await {
-                                let ctx = expect_context::<AppContext>();
-                                ctx.projects.set(projects);
-                            }
-                        });
+                        deleting_session_id.set(Some(id));
+                        deleting_provider.set(Some(provider.clone()));
                     })
                 };
 
@@ -287,7 +281,7 @@ fn SessionList(project_name: String, sessions: Vec<SessionInfo>) -> impl IntoVie
                         Some(view! {
                             <li>
                                 <button
-                                    class="w-full px-2 py-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors text-center"
+                                    class="w-full px-2 py-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors text-center"
                                     on:click=move |_| {
                                         session_ctx_has_more.load_more(project_name.clone());
                                     }
@@ -307,6 +301,66 @@ fn SessionList(project_name: String, sessions: Vec<SessionInfo>) -> impl IntoVie
                 }
             }
         </ul>
+
+        // Delete confirmation dialog
+        {move || {
+            deleting_session_id.get().map(|session_id| {
+                let project_name = project_name_del.clone();
+                let session_id_confirm = session_id.clone();
+                view! {
+                    <div class="fixed inset-0 z-50 flex items-center justify-center bg-background/80">
+                        <div class="bg-background border border-border rounded-lg p-4 shadow-lg w-80">
+                            <p class="text-sm font-medium mb-1">"Delete Session"</p>
+                            <p class="text-xs text-muted-foreground mb-4">
+                                "This session will be permanently deleted. This action cannot be undone."
+                            </p>
+                            <div class="flex justify-end gap-2">
+                                <button
+                                    class="px-3 py-1.5 text-xs rounded-md border border-border text-muted-foreground hover:text-foreground transition-colors"
+                                    on:click=move |_| {
+                                        deleting_session_id.set(None);
+                                        deleting_provider.set(None);
+                                    }
+                                >
+                                    "Cancel"
+                                </button>
+                                <button
+                                    class="px-3 py-1.5 text-xs rounded-md bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors"
+                                    on:click={
+                                        let session_id = session_id_confirm.clone();
+                                        move |_| {
+                                            let provider = deleting_provider.get_untracked().unwrap_or_default();
+                                            let pn = project_name.clone();
+                                            let sid = session_id.clone();
+                                            deleting_session_id.set(None);
+                                            deleting_provider.set(None);
+                                            spawn_local(async move {
+                                                if let Err(e) = commands::delete_session(
+                                                    &sid,
+                                                    Some(&provider),
+                                                    Some(&pn),
+                                                ).await {
+                                                    expect_toaster().error(format!("Failed to delete session: {e}"));
+                                                } else {
+                                                    expect_toaster().success("Session deleted");
+                                                }
+                                                // Reload projects to reflect the deletion
+                                                if let Ok(projects) = commands::list_projects(true).await {
+                                                    let ctx = expect_context::<AppContext>();
+                                                    ctx.projects.set(projects);
+                                                }
+                                            });
+                                        }
+                                    }
+                                >
+                                    "Delete"
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                }
+            })
+        }}
 
         // Inline rename input (shown when renaming)
         {move || {
@@ -331,9 +385,9 @@ fn SessionList(project_name: String, sessions: Vec<SessionInfo>) -> impl IntoVie
                                             let sid = session_id_submit.clone();
                                             spawn_local(async move {
                                                 if let Err(e) = commands::set_session_name(&sid, &val, None).await {
-                                                    web_sys::console::error_1(
-                                                        &format!("Failed to rename session: {e}").into(),
-                                                    );
+                                                    expect_toaster().error(format!("Failed to rename session: {e}"));
+                                                } else {
+                                                    expect_toaster().success("Session renamed");
                                                 }
                                                 // Reload projects
                                                 if let Ok(projects) = commands::list_projects(true).await {
@@ -365,9 +419,9 @@ fn SessionList(project_name: String, sessions: Vec<SessionInfo>) -> impl IntoVie
                                                 let sid = session_id.clone();
                                                 spawn_local(async move {
                                                     if let Err(e) = commands::set_session_name(&sid, &val, None).await {
-                                                        web_sys::console::error_1(
-                                                            &format!("Failed to rename session: {e}").into(),
-                                                        );
+                                                        expect_toaster().error(format!("Failed to rename session: {e}"));
+                                                    } else {
+                                                        expect_toaster().success("Session renamed");
                                                     }
                                                     // Reload projects
                                                     if let Ok(projects) = commands::list_projects(true).await {

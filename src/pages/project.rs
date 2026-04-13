@@ -16,7 +16,7 @@ pub fn ProjectPage() -> impl IntoView {
 
                 match project {
                     None => view! {
-                        <div class="flex items-center justify-center h-full text-sm text-muted-foreground">
+                        <div class="flex items-center justify-center h-full text-sm text-muted-foreground animate-in fade-in duration-150">
                             "Select a project from the sidebar"
                         </div>
                     }.into_any(),
@@ -33,7 +33,7 @@ pub fn ProjectPage() -> impl IntoView {
 
                         match tab {
                             AppTab::Chat => view! {
-                                <div class="flex flex-col items-center justify-center h-full gap-3 text-sm text-muted-foreground">
+                                <div class="flex flex-col items-center justify-center h-full gap-3 text-sm text-muted-foreground animate-in fade-in duration-150">
                                     <div class="text-center">
                                         <p class="font-medium text-foreground text-base">{project.display_name.clone()}</p>
                                         {if !session_display.is_empty() {
@@ -50,17 +50,17 @@ pub fn ProjectPage() -> impl IntoView {
                                 </div>
                             }.into_any(),
                             AppTab::Shell => view! {
-                                <div class="flex items-center justify-center h-full text-sm text-muted-foreground">
+                                <div class="flex items-center justify-center h-full text-sm text-muted-foreground animate-in fade-in duration-150">
                                     "Shell - Coming in Phase 3"
                                 </div>
                             }.into_any(),
                             AppTab::Files => view! {
-                                <div class="flex items-center justify-center h-full text-sm text-muted-foreground">
+                                <div class="flex items-center justify-center h-full text-sm text-muted-foreground animate-in fade-in duration-150">
                                     "Files - Coming in Phase 4"
                                 </div>
                             }.into_any(),
                             AppTab::Git => view! {
-                                <div class="flex items-center justify-center h-full text-sm text-muted-foreground">
+                                <div class="flex items-center justify-center h-full text-sm text-muted-foreground animate-in fade-in duration-150">
                                     "Git - Coming in Phase 5"
                                 </div>
                             }.into_any(),

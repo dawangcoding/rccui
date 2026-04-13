@@ -11,11 +11,15 @@ use crate::pages::settings::SettingsPage;
 use crate::hooks::use_theme_mode::ThemeMode;
 use crate::state::{AppContext, SessionContext};
 use crate::tauri::{commands, events};
+use crate::ui::toast_custom::toaster::{expect_toaster, provide_toaster, Toaster};
 
 #[component]
 pub fn App() -> impl IntoView {
     // Initialize theme mode (must be before any component that uses ThemeToggle)
     let _theme = ThemeMode::init();
+
+    // Initialize toast notification system
+    provide_toaster();
 
     // Create global application state
     let ctx = AppContext::new();
@@ -33,7 +37,7 @@ pub fn App() -> impl IntoView {
                 ctx.projects.set(projects);
             }
             Err(e) => {
-                web_sys::console::error_1(&format!("Failed to load projects: {e}").into());
+                expect_toaster().error(format!("Failed to load projects: {e}"));
             }
         }
         ctx.projects_loading.set(false);
@@ -46,9 +50,7 @@ pub fn App() -> impl IntoView {
                 ctx.onboarding_complete.set(status.has_completed_onboarding);
             }
             Err(e) => {
-                web_sys::console::error_1(
-                    &format!("Failed to check onboarding: {e}").into(),
-                );
+                expect_toaster().error(format!("Failed to check onboarding: {e}"));
             }
         }
     });
@@ -63,9 +65,7 @@ pub fn App() -> impl IntoView {
                         ctx.projects.set(projects);
                     }
                     Err(e) => {
-                        web_sys::console::error_1(
-                            &format!("Failed to refresh projects: {e}").into(),
-                        );
+                        expect_toaster().error(format!("Failed to refresh projects: {e}"));
                     }
                 }
             });
@@ -77,6 +77,7 @@ pub fn App() -> impl IntoView {
     });
 
     view! {
+        <Toaster />
         <Router>
             <Routes fallback=|| view! {
                 <div class="flex items-center justify-center h-screen text-sm text-muted-foreground">
