@@ -23,7 +23,7 @@ struct ProjectsUpdatedPayload {
 /// Start watching provider directories for session file changes.
 /// Spawns a background task that detects changes and emits Tauri events.
 pub fn start_file_watcher(state: Arc<AppState>) {
-    tokio::spawn(async move {
+    tauri::async_runtime::spawn(async move {
         if let Err(e) = run_watcher(state).await {
             tracing::error!("File watcher error: {e}");
         }
