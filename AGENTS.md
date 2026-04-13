@@ -270,6 +270,131 @@ pub async fn some_command(
 | `thiserror` 2 / `anyhow` 1 | Error handling |
 | `async-trait` 0.1 | Async trait support |
 
+## Applying DESIGN.md Design Specifications
+
+Design specification files are stored in `docs/designmds/` (e.g. `opencode-DESIGN.md`, `cursor-DESIGN.md`, `xAi-DESIGN.md`). Each defines a complete visual language (colors, typography, radius, shadows, spacing). Below is the workflow and architecture knowledge needed to apply any DESIGN.md to this project.
+
+### Theme Architecture (How Styling Propagates)
+
+```
+styles.css (:root / .dark CSS variables)
+    ↓
+styles.css (@theme inline → maps to Tailwind color/radius tokens)
+    ↓
+Tailwind CSS compilation (npx tailwindcss -i styles.css -o dist/tailwind.css)
+    ↓
+src/ui/*.rs components (use semantic classes: bg-primary, text-foreground, border-border, etc.)
+    ↓
+src/layout/*.rs + src/pages/*.rs (app-level code, also uses semantic classes)
+```
+
+**Key insight**: Changing CSS variables in `styles.css` automatically propagates to ~90% of the UI because rust/ui components use semantic Tailwind tokens (not hardcoded colors). Only layout/page files with explicit Tailwind utility classes (e.g. `rounded-lg`, `shadow-sm`) need manual adjustment.
+
+### Files to Modify (Ordered by Impact)
+
+| Priority | File | What to Change | Impact |
+|----------|------|---------------|--------|
+| 1 | `styles.css` | `:root` + `.dark` CSS variables, `@theme inline` overrides | ~90% visual change |
+| 2 | `index.html` | Font loading (`<link>` tags in `<head>`, before Trunk CSS link) | Typography |
+| 3 | `src/layout/*.rs` | Explicit utility classes (`rounded-*`, `shadow-*`, `backdrop-blur-*`) | Layout polish |
+| 4 | `src/pages/*.rs` | Same as above | Page polish |
+| 5 | `src/ui/toast_custom/_template_styles.rs` | Hardcoded `--leptoaster-font-family` and color values | Toast notifications |
+
+### styles.css Variable Groups
+
+When updating `styles.css`, replace values in these groups for **both** `:root` (light) and `.dark` (dark):
+
+1. **Core surfaces**: `--background`, `--foreground`, `--card`, `--card-foreground`, `--popover`, `--popover-foreground`
+2. **Interactive**: `--primary`, `--primary-foreground`, `--secondary`, `--secondary-foreground`
+3. **Muted/Accent**: `--muted`, `--muted-foreground`, `--accent`, `--accent-foreground`
+4. **Semantic**: `--destructive`, `--success`, `--warning`, `--info` (each with `-foreground`)
+5. **Borders**: `--border`, `--input`, `--ring`
+6. **Sidenav**: `--sidenav`, `--sidenav-foreground`, `--sidenav-primary`, `--sidenav-accent`, `--sidenav-border`, `--sidenav-ring` (each with `-foreground`)
+7. **Provider brands**: `--provider-claude`, `--provider-codex`, `--provider-gemini`
+8. **Charts**: `--chart-1` through `--chart-5`, `--sidebar-primary`
+9. **Scrollbar**: `--scrollbar-thumb`, `--scrollbar-track`
+10. **Radius**: `--radius` (single value, controls all via formulas in `@theme inline`)
+
+### Radius Control
+
+`--radius` is the single base value. The `@theme inline` block calculates derived values:
+
+```
+--radius-sm = --radius - 4px   → rounded-sm
+--radius-md = --radius - 2px   → rounded-md  (most components use this)
+--radius-lg = --radius          → rounded-lg  (inputs, containers)
+--radius-xl = --radius + 4px   → rounded-xl
+```
+
+To target a specific `rounded-md` value: set `--radius` = desired + 2px. Example: want `rounded-md` = 4px → set `--radius: 0.375rem` (6px).
+
+### Shadow Control via @theme inline
+
+Add these to `@theme inline` to globally disable specific shadow levels:
+
+```css
+--shadow-xs: 0 0 #0000;   /* neutralizes shadow-xs (inputs, small elements) */
+--shadow-sm: 0 0 #0000;   /* neutralizes shadow-sm (cards, buttons, sidenav, tabs) */
+--shadow: 0 0 #0000;       /* neutralizes shadow (badges) */
+/* shadow-md through shadow-2xl are preserved for floating elements (dialogs, dropdowns, tooltips) */
+```
+
+### Font Override via @theme inline
+
+```css
+--font-sans: 'Font Name', fallback1, fallback2, monospace;
+--font-mono: 'Font Name', fallback1, fallback2, monospace;
+```
+
+Also add explicit `font-family` in the `@layer base` body rule for full coverage.
+
+### Component Shadow/Radius Audit
+
+Components in `src/ui/` that have embedded shadow/radius classes (cannot be changed via CSS variables alone):
+
+| Component | Shadow | Radius | Notes |
+|-----------|--------|--------|-------|
+| `button.rs` | `shadow-xs` | `rounded-md` | Controllable via `@theme inline` |
+| `card.rs` | `shadow-sm` | `rounded-xl` | Shadow controllable; radius stays at `--radius + 4px` |
+| `input.rs` | `shadow-xs` | `rounded-md` | Both controllable |
+| `sidenav.rs` | `shadow-sm` | `rounded-lg/md` | Shadow controllable |
+| `tabs.rs` | `shadow-sm` | `rounded-lg/md` | Shadow controllable |
+| `dialog.rs` | `shadow-lg` | `rounded-2xl` | Floating element, usually keep shadow |
+| `tooltip.rs` | `shadow-lg` | none | Floating element |
+| `badge.rs` | `shadow` | `rounded-md` | Both controllable |
+
+### Layout Files with Hardcoded Utility Classes
+
+These files in `src/layout/` and `src/pages/` contain explicit Tailwind classes that may need manual adjustment per design spec:
+
+- `src/layout/main_header.rs`: Tab container (`rounded-lg`), active tab (`shadow-sm`)
+- `src/layout/sidebar/session_item.rs`: Hover actions (`backdrop-blur-sm`)
+- `src/layout/sidebar/project_list.rs`: Search input (long inline class string)
+- `src/pages/dashboard.rs`: Provider cards (`rounded-lg`), empty state icon (`rounded-lg`)
+
+### Toast System (_template_styles.rs)
+
+`src/ui/toast_custom/_template_styles.rs` contains a hardcoded CSS string (not Tailwind). It has its own `:root` and `.dark` blocks with:
+- `--leptoaster-font-family` (default: `Arial`)
+- `--leptoaster-{success,warn,error}-background-color` and `-border-color` (OKLCH values)
+- `--leptoaster-info-*` colors reference `var(--background)` / `var(--foreground)` (auto-follows theme)
+
+Update font and success/warn/error colors to match the design spec.
+
+### Verification Checklist
+
+After applying a DESIGN.md:
+1. `cargo check` — Rust compilation (catches syntax errors in string edits)
+2. `npx tailwindcss -i styles.css -o dist/tailwind.css` — CSS compilation (catches invalid variable syntax)
+3. `cargo tauri dev` — Visual verification in both light and dark modes
+
+### Lessons Learned
+
+- **Do NOT modify `src/ui/*.rs` component files** unless absolutely necessary. They are from a shared library. Use CSS variable overrides and `@theme inline` to control their appearance.
+- **Color conversion**: DESIGN.md specs typically use hex colors. Convert to OKLCH for `styles.css`. Include the warm/cool hue in neutral colors (e.g. hue ~25 for warm neutrals, hue ~260 for cool). Pure `0` hue = achromatic gray.
+- **Light + dark mode**: If a DESIGN.md is dark-only, create a complementary light mode by inverting luminosity values while keeping the same hue family.
+- **Always preview the result** with `cargo tauri dev` before considering the work done. CSS variable changes can have unexpected cascading effects on component contrast and readability.
+
 ## Important Notes
 
 - This project uses Rust **nightly** toolchain (configured in `rust-toolchain.toml`)
