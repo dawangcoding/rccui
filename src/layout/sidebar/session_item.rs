@@ -29,11 +29,11 @@ pub fn SessionItem(
         <li class="group/session relative">
             <button
                 class=move || {
-                    let base = "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs transition-colors cursor-pointer select-none";
+                    let base = "flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs transition-all duration-200 cursor-pointer select-none";
                     if is_selected.get() {
                         format!("{base} bg-sidenav-accent text-sidenav-accent-foreground font-medium")
                     } else {
-                        format!("{base} text-sidenav-foreground/80 hover:bg-sidenav-accent/50 hover:text-sidenav-accent-foreground")
+                        format!("{base} text-sidenav-foreground/70 hover:bg-sidenav-accent/50 hover:text-sidenav-accent-foreground")
                     }
                 }
                 on:click=move |_| on_click.run(())
@@ -49,10 +49,10 @@ pub fn SessionItem(
                 </span>
 
                 // Message count + time
-                <span class="flex-shrink-0 flex items-center gap-1.5 text-[11px] text-muted-foreground tabular-nums">
+                <span class="flex-shrink-0 flex items-center gap-1.5 text-[10px] text-muted-foreground tabular-nums">
                     {if message_count > 0 {
                         Some(view! {
-                            <span class="inline-flex items-center justify-center min-w-4 h-4 px-1 rounded-full bg-muted text-muted-foreground text-[11px] font-medium">
+                            <span class="inline-flex items-center justify-center min-w-4 h-4 px-1 rounded-full bg-muted/80 text-muted-foreground text-[10px] font-medium">
                                 {message_count}
                             </span>
                         })
@@ -64,10 +64,10 @@ pub fn SessionItem(
             </button>
 
             // Action buttons (visible on hover)
-            <div class="absolute top-0.5 right-1 hidden group-hover/session:flex items-center gap-0.5 bg-sidenav/90 backdrop-blur-sm rounded px-0.5">
+            <div class="absolute top-0.5 right-1 hidden group-hover/session:flex items-center gap-0.5 rounded-md px-0.5" style="background: var(--sidenav); opacity: 0.95;">
                 // Rename button
                 <button
-                    class="size-5 flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                    class="size-5 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-all duration-150"
                     title="Rename"
                     on:click=move |e| {
                         e.stop_propagation();
@@ -80,7 +80,7 @@ pub fn SessionItem(
                 </button>
                 // Delete button
                 <button
-                    class="size-5 flex items-center justify-center rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                    class="size-5 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all duration-150"
                     title="Delete"
                     on:click=move |e| {
                         e.stop_propagation();

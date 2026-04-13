@@ -34,10 +34,10 @@ pub fn MainHeader() -> impl IntoView {
     let tabs = [AppTab::Chat, AppTab::Shell, AppTab::Files, AppTab::Git];
 
     view! {
-        <header class="flex items-center gap-2 h-12 px-3 border-b border-border shrink-0">
+        <header class="flex items-center gap-3 h-12 px-4 border-b border-border shrink-0">
             // Sidebar toggle
             <SidenavTrigger>
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted-foreground">
                     <rect width="18" height="18" x="3" y="3" rx="2"/>
                     <path d="M9 3v18"/>
                 </svg>
@@ -52,7 +52,7 @@ pub fn MainHeader() -> impl IntoView {
             <div class="flex-1"/>
 
             // Tab buttons
-            <nav class="flex items-center gap-0.5 bg-muted rounded-lg p-0.5 h-9">
+            <nav class="flex items-center gap-0.5 bg-muted/60 rounded-lg p-0.5 h-8 border border-border/50">
                 {tabs.into_iter().map(|tab| {
                     let label = tab.label();
                     let is_active = Memo::new(move |_| ctx.active_tab.get() == tab);
@@ -61,13 +61,13 @@ pub fn MainHeader() -> impl IntoView {
                     let btn = view! {
                         <button
                             class=move || {
-                                let base = "flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer select-none";
+                                let base = "flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-medium rounded-md transition-all duration-200 cursor-pointer select-none";
                                 if is_active.get() {
-                                    format!("{base} bg-background text-foreground shadow-sm")
+                                    format!("{base} bg-accent text-foreground")
                                 } else if implemented {
-                                    format!("{base} text-muted-foreground hover:text-foreground")
+                                    format!("{base} text-muted-foreground hover:text-foreground hover:bg-accent/50")
                                 } else {
-                                    format!("{base} text-muted-foreground hover:text-foreground opacity-50")
+                                    format!("{base} text-muted-foreground/50 hover:text-muted-foreground")
                                 }
                             }
                             on:click=move |_| ctx.active_tab.set(tab)

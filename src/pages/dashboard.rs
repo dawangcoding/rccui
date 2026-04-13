@@ -22,17 +22,27 @@ pub fn DashboardPage() -> impl IntoView {
     };
 
     view! {
-        <div class="flex flex-col items-center justify-center h-full p-8 gap-8">
+        <div class="flex flex-col items-center justify-center h-full p-8 gap-10 relative overflow-hidden">
+            // Decorative background glow orbs
+            <div class="absolute inset-0 overflow-hidden pointer-events-none select-none" aria-hidden="true">
+                <div class="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full opacity-[0.04]"
+                    style="background: radial-gradient(circle, oklch(0.63 0.24 275) 0%, transparent 70%);"
+                />
+                <div class="absolute bottom-1/4 right-1/4 w-[300px] h-[300px] rounded-full opacity-[0.03]"
+                    style="background: radial-gradient(circle, oklch(0.7 0.15 300) 0%, transparent 70%);"
+                />
+            </div>
+
             // Header section
-            <div class="flex flex-col items-center gap-2 text-center max-w-md">
-                <h1 class="text-3xl font-bold tracking-tight text-foreground">"RCCUI"</h1>
-                <p class="text-base text-muted-foreground">
+            <div class="flex flex-col items-center gap-3 text-center max-w-md relative z-10">
+                <h1 class="text-4xl font-bold tracking-tight gradient-text">"RCCUI"</h1>
+                <p class="text-sm text-muted-foreground leading-relaxed">
                     "Multi AI Coding Assistant Manager"
                 </p>
             </div>
 
             // Provider stats grid
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full max-w-lg">
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full max-w-lg relative z-10">
                 {move || {
                     let (claude, cursor, codex, gemini) = stats();
                     view! {
@@ -45,17 +55,17 @@ pub fn DashboardPage() -> impl IntoView {
             </div>
 
             // Bottom section
-            <div class="text-center">
+            <div class="text-center relative z-10">
                 {move || {
                     let count = ctx.projects.get().len();
                     if count == 0 {
                         view! {
                             <div class="flex flex-col items-center gap-3 px-4">
-                                <div class="size-12 rounded-lg bg-muted flex items-center justify-center">
-                                    <FolderOpen class="size-6 text-muted-foreground" />
+                                <div class="size-12 rounded-xl bg-muted/50 border border-border flex items-center justify-center">
+                                    <FolderOpen class="size-5 text-muted-foreground" />
                                 </div>
                                 <p class="text-sm font-medium text-foreground">"No projects yet"</p>
-                                <p class="text-xs text-muted-foreground max-w-sm">
+                                <p class="text-xs text-muted-foreground max-w-sm leading-relaxed">
                                     "Sessions will appear automatically as you use Claude, Cursor, Codex, or Gemini in your projects."
                                 </p>
                             </div>
@@ -82,12 +92,12 @@ fn ProviderCard(
     color_class: &'static str,
 ) -> impl IntoView {
     view! {
-        <div class="flex flex-col items-center gap-2 rounded-lg bg-muted/50 p-4">
-            <span class="size-5 flex items-center justify-center">
+        <div class="group flex flex-col items-center gap-2.5 rounded-xl border border-border bg-card/50 p-5 transition-all duration-300 hover:border-primary/20 hover:bg-card">
+            <span class="size-5 flex items-center justify-center opacity-80 group-hover:opacity-100 transition-opacity">
                 <ProviderIcon provider=provider.to_string() />
             </span>
-            <span class="text-xs text-muted-foreground uppercase tracking-wider">{label}</span>
-            <span class=format!("text-2xl font-bold tabular-nums {color_class}")>{count}</span>
+            <span class="text-[11px] text-muted-foreground uppercase tracking-widest font-medium">{label}</span>
+            <span class=format!("text-2xl font-semibold tabular-nums tracking-tight {color_class}")>{count}</span>
         </div>
     }
 }

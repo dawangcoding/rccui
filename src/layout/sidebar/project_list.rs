@@ -308,15 +308,15 @@ fn SessionList(project_name: String, sessions: Vec<SessionInfo>) -> impl IntoVie
                 let project_name = project_name_del.clone();
                 let session_id_confirm = session_id.clone();
                 view! {
-                    <div class="fixed inset-0 z-50 flex items-center justify-center bg-background/80">
-                        <div class="bg-background border border-border rounded-lg p-4 shadow-lg w-80">
-                            <p class="text-sm font-medium mb-1">"Delete Session"</p>
-                            <p class="text-xs text-muted-foreground mb-4">
+                    <div class="fixed inset-0 z-50 flex items-center justify-center" style="background: oklch(0 0 0 / 60%); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);">
+                        <div class="border border-border rounded-xl p-5 shadow-lg w-80 animate-in fade-in zoom-in-95 duration-200" style="background: var(--popover);">
+                            <p class="text-sm font-semibold mb-1.5">"Delete Session"</p>
+                            <p class="text-xs text-muted-foreground mb-5 leading-relaxed">
                                 "This session will be permanently deleted. This action cannot be undone."
                             </p>
                             <div class="flex justify-end gap-2">
                                 <button
-                                    class="px-3 py-1.5 text-xs rounded-md border border-border text-muted-foreground hover:text-foreground transition-colors"
+                                    class="px-3 py-1.5 text-xs rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-all duration-200"
                                     on:click=move |_| {
                                         deleting_session_id.set(None);
                                         deleting_provider.set(None);
@@ -325,7 +325,7 @@ fn SessionList(project_name: String, sessions: Vec<SessionInfo>) -> impl IntoVie
                                     "Cancel"
                                 </button>
                                 <button
-                                    class="px-3 py-1.5 text-xs rounded-md bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors"
+                                    class="px-3 py-1.5 text-xs rounded-lg bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-all duration-200"
                                     on:click={
                                         let session_id = session_id_confirm.clone();
                                         move |_| {
@@ -367,13 +367,13 @@ fn SessionList(project_name: String, sessions: Vec<SessionInfo>) -> impl IntoVie
             renaming_session_id.get().map(|session_id| {
                 let session_id_submit = session_id.clone();
                 view! {
-                    <div class="fixed inset-0 z-50 flex items-center justify-center bg-background/80">
-                        <div class="bg-background border border-border rounded-lg p-4 shadow-lg w-80">
-                            <p class="text-sm font-medium mb-2">"Rename Session"</p>
+                    <div class="fixed inset-0 z-50 flex items-center justify-center" style="background: oklch(0 0 0 / 60%); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);">
+                        <div class="border border-border rounded-xl p-5 shadow-lg w-80 animate-in fade-in zoom-in-95 duration-200" style="background: var(--popover);">
+                            <p class="text-sm font-semibold mb-3">"Rename Session"</p>
                             <input
                                 type="text"
                                 placeholder="Enter new name..."
-                                class="w-full h-8 bg-background border-input flex rounded-md border px-3 py-1 text-sm outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-2"
+                                class="w-full h-8 bg-background border-input flex rounded-lg border px-3 py-1 text-sm outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-2 transition-all"
                                 prop:value=move || rename_value.get()
                                 on:input=move |e| {
                                     rename_value.set(event_target_value(&e));
@@ -402,15 +402,15 @@ fn SessionList(project_name: String, sessions: Vec<SessionInfo>) -> impl IntoVie
                                     }
                                 }
                             />
-                            <div class="flex justify-end gap-2 mt-3">
+                            <div class="flex justify-end gap-2 mt-4">
                                 <button
-                                    class="px-3 py-1.5 text-xs rounded-md border border-border text-muted-foreground hover:text-foreground transition-colors"
+                                    class="px-3 py-1.5 text-xs rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-all duration-200"
                                     on:click=move |_| renaming_session_id.set(None)
                                 >
                                     "Cancel"
                                 </button>
                                 <button
-                                    class="px-3 py-1.5 text-xs rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                                    class="px-3 py-1.5 text-xs rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-200"
                                     on:click={
                                         let session_id = session_id.clone();
                                         move |_| {

@@ -4,43 +4,44 @@ pub const TEMPLATE_STYLES: &str = r#"
     --leptoaster-max-width: 80vw;
     --leptoaster-z-index: 9999;
 
-    --leptoaster-font-family: Arial;
-    --leptoaster-font-size: 14px;
-    --leptoaster-line-height: 20px;
-    --leptoaster-font-weight: 600;
+    --leptoaster-font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+    --leptoaster-font-size: 13px;
+    --leptoaster-line-height: 18px;
+    --leptoaster-font-weight: 500;
 
     --leptoaster-progress-height: 2px;
 
     --leptoaster-info-background-color: var(--background, #ffffff);
-    --leptoaster-info-border-color: var(--foreground, #222222);
+    --leptoaster-info-border-color: var(--border, #e5e5e5);
     --leptoaster-info-text-color: var(--foreground, #222222);
 
-    --leptoaster-success-background-color: oklch(0.65 0.2 145);
-    --leptoaster-success-border-color: oklch(0.55 0.2 145);
+    --leptoaster-success-background-color: oklch(0.55 0.2 155);
+    --leptoaster-success-border-color: oklch(0.45 0.18 155);
     --leptoaster-success-text-color: #ffffff;
 
-    --leptoaster-warn-background-color: oklch(0.75 0.18 85);
-    --leptoaster-warn-border-color: oklch(0.65 0.18 85);
-    --leptoaster-warn-text-color: #ffffff;
+    --leptoaster-warn-background-color: oklch(0.72 0.17 80);
+    --leptoaster-warn-border-color: oklch(0.62 0.15 80);
+    --leptoaster-warn-text-color: oklch(0.15 0.01 270);
 
-    --leptoaster-error-background-color: oklch(0.63 0.24 27);
-    --leptoaster-error-border-color: oklch(0.53 0.24 27);
+    --leptoaster-error-background-color: oklch(0.55 0.25 25);
+    --leptoaster-error-border-color: oklch(0.45 0.22 25);
     --leptoaster-error-text-color: #ffffff;
 }
 
 .dark {
-    --leptoaster-info-background-color: var(--card, #1a1a1a);
-    --leptoaster-info-border-color: var(--border, rgba(255 255 255 / 10%));
-    --leptoaster-info-text-color: var(--foreground, #fafafa);
+    --leptoaster-info-background-color: var(--card, oklch(0.17 0.013 270));
+    --leptoaster-info-border-color: var(--border, oklch(1 0 0 / 8%));
+    --leptoaster-info-text-color: var(--foreground, oklch(0.95 0.005 270));
 
-    --leptoaster-success-background-color: oklch(0.55 0.18 145);
-    --leptoaster-success-border-color: oklch(0.45 0.16 145);
+    --leptoaster-success-background-color: oklch(0.63 0.19 155);
+    --leptoaster-success-border-color: oklch(0.53 0.17 155);
 
-    --leptoaster-warn-background-color: oklch(0.65 0.16 85);
-    --leptoaster-warn-border-color: oklch(0.55 0.14 85);
+    --leptoaster-warn-background-color: oklch(0.75 0.17 80);
+    --leptoaster-warn-border-color: oklch(0.65 0.15 80);
+    --leptoaster-warn-text-color: oklch(0.15 0.01 270);
 
-    --leptoaster-error-background-color: oklch(0.55 0.22 27);
-    --leptoaster-error-border-color: oklch(0.45 0.2 27);
+    --leptoaster-error-background-color: oklch(0.65 0.2 25);
+    --leptoaster-error-border-color: oklch(0.55 0.18 25);
 }
 
 .leptoaster-stack-container-bottom:hover > div,
