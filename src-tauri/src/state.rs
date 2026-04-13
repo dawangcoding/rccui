@@ -36,9 +36,6 @@ pub struct PtySession {
     pub provider: String,
     /// Circular replay buffer for reconnection.
     pub buffer: VecDeque<String>,
-    /// Channel to forward PTY output to the currently attached WebSocket.
-    /// `None` when no WebSocket is connected (session is idle/detached).
-    pub ws_tx: Option<mpsc::UnboundedSender<String>>,
     /// Background task that reads from PTY stdout and forwards output.
     pub reader_handle: Option<tokio::task::JoinHandle<()>>,
     /// Delayed cleanup task (spawned on WebSocket disconnect, cancelled on reconnect).
@@ -59,6 +56,9 @@ pub struct AppState {
     /// Local user ID (always 1 for desktop app)
     pub local_user_id: i64,
 
+    /// Tauri app handle for emitting events from background tasks
+    pub app_handle: tauri::AppHandle,
+
     /// Active CLI sessions per provider: key = "provider:session_id"
     pub active_sessions: DashMap<String, Arc<Mutex<ActiveSession>>>,
 
@@ -70,11 +70,12 @@ pub struct AppState {
 }
 
 impl AppState {
-    pub fn new(db: SqlitePool, config: AppConfig) -> Self {
+    pub fn new(db: SqlitePool, config: AppConfig, app_handle: tauri::AppHandle) -> Self {
         Self {
             db,
             config,
             local_user_id: LOCAL_USER_ID,
+            app_handle,
             active_sessions: DashMap::new(),
             pty_sessions: Arc::new(Mutex::new(HashMap::new())),
             project_cache: Arc::new(RwLock::new(None)),

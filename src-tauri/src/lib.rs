@@ -51,7 +51,11 @@ pub fn run() {
             });
 
             // Build application state
-            let app_state = Arc::new(AppState::new(pool, config));
+            let app_state = Arc::new(AppState::new(pool, config, app.handle().clone()));
+
+            // Start background file watcher for session changes
+            services::file_watcher::start_file_watcher(app_state.clone());
+
             app.manage(app_state);
 
             Ok(())
@@ -139,6 +143,13 @@ pub fn run() {
             commands::mcp::cursor_mcp_add_json,
             commands::mcp::cursor_mcp_remove,
             commands::mcp::mcp_all_servers,
+            // Chat commands
+            commands::chat::chat_execute,
+            // Shell commands
+            commands::shell::shell_init,
+            commands::shell::shell_input,
+            commands::shell::shell_resize,
+            commands::shell::shell_detach,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
