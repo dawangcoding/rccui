@@ -9,7 +9,7 @@
 | 前端框架 | Leptos 0.8 (CSR) | Rust 响应式前端，编译为 WASM |
 | 桌面运行时 | Tauri 2 | 原生桌面应用 |
 | UI 组件 | rust/ui | shadcn-ui 风格，85+ 组件 + 26 hooks |
-| 样式 | Tailwind CSS v4 | OKLCH 主题变量 |
+| 样式 | Tailwind CSS v4 | OKLCH 主题变量，支持 light/dark 双主题 |
 | 数据库 | SQLite (sqlx) | 本地持久化 |
 | 语言 | Rust (edition 2024, nightly) | 前后端统一 |
 
@@ -139,6 +139,9 @@ docs/dev/                       # 开发文档
 - 组件使用 `bind_value` 进行双向绑定（需要 nightly feature）
 - 使用 `attr:r#type` 代替 `attr:type`（Rust 关键字冲突）
 - Tailwind 类通过 `tw_merge` 合并
+- 所有颜色使用 OKLCH 主题变量（定义在 `styles.css`），不要在组件中硬编码 hex/rgb 值
+- 暗黑模式通过 `<html>` 根元素的 `.dark` class 驱动，`ThemeMode` hook 管理信号、持久化和 DOM 同步
+- 可用语义化颜色：`primary`, `secondary`, `muted`, `accent`, `destructive`, `success`, `warning`, `info`, `provider-claude/codex/gemini` 等
 
 ## 许可证
 

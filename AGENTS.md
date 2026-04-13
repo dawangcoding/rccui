@@ -155,6 +155,47 @@ For hooks: copy from `app_crates/registry/src/hooks/` to `src/hooks/`.
 
 When adding new Tailwind classes in Rust code, they are automatically picked up on next build.
 
+### Theme Variables
+
+All colors are defined in `styles.css` as OKLCH CSS variables. This is the single source of truth for the design system.
+
+**Available semantic color tokens** (usable as Tailwind classes like `bg-primary`, `text-success`, etc.):
+
+| Token | Purpose | Example class |
+|-------|---------|---------------|
+| `background` / `foreground` | Page background & text | `bg-background text-foreground` |
+| `card` / `card-foreground` | Card surfaces | `bg-card` |
+| `primary` / `primary-foreground` | Primary actions | `bg-primary text-primary-foreground` |
+| `secondary` / `secondary-foreground` | Secondary actions | `bg-secondary` |
+| `muted` / `muted-foreground` | Subdued content | `text-muted-foreground` |
+| `accent` / `accent-foreground` | Highlights | `bg-accent` |
+| `destructive` | Danger/delete actions | `bg-destructive` |
+| `success` / `success-foreground` | Success states | `bg-success text-success-foreground` |
+| `warning` / `warning-foreground` | Warning states | `bg-warning text-warning-foreground` |
+| `info` / `info-foreground` | Informational states | `bg-info text-info-foreground` |
+| `border` / `input` / `ring` | Borders & focus rings | `border-border ring-ring` |
+| `sidenav-*` | Sidebar navigation | `bg-sidenav text-sidenav-foreground` |
+| `provider-claude` | Claude brand color | `text-provider-claude` |
+| `provider-codex` | Codex brand color | `text-provider-codex` |
+| `provider-gemini` | Gemini brand color | `text-provider-gemini` |
+
+### Dark Mode
+
+- Dark mode is driven by a `.dark` class on the `<html>` root element
+- `ThemeMode` hook (`src/hooks/use_theme_mode.rs`) manages the signal, localStorage persistence, and DOM sync
+- All theme variables have light (`:root`) and dark (`.dark`) values in `styles.css`
+- Tailwind `dark:` prefix classes work automatically when `.dark` is present on root
+- System preference is detected via `prefers-color-scheme` media query as fallback
+
+### Style Guidelines
+
+- **Always use theme variables** — never hardcode hex/rgb colors in Rust component code
+- **Provider brand colors** use `text-provider-claude`, `text-provider-codex`, `text-provider-gemini` (not raw hex)
+- **Scrollbar colors** are managed via `--scrollbar-thumb` / `--scrollbar-track` CSS variables
+- **Hide scrollbars** using the `no__scrollbar` Tailwind utility (not inline styles)
+- **Show scrollbar on hover** using `scrollbar__on_hover` utility with `group/scrollbar-on-hover` parent
+- To add a new color token: define in `:root` + `.dark` in `styles.css`, map in `@theme inline`, then use as Tailwind class
+
 ## Backend Architecture
 
 ### Communication Pattern
