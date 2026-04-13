@@ -41,6 +41,8 @@ pub fn App() -> impl IntoView {
 
     view! {
         <main class="flex flex-col items-center justify-center min-h-screen p-8 gap-6 bg-background">
+            <h1 class="text-3xl font-bold text-foreground">"Welcome to Tauri + Leptos"</h1>
+
             <div class="flex items-center gap-8">
                 <a href="https://tauri.app" target="_blank" class="transition-opacity hover:opacity-80">
                     <img src="public/tauri.svg" class="w-24 h-24" alt="Tauri logo"/>
@@ -50,12 +52,10 @@ pub fn App() -> impl IntoView {
                 </a>
             </div>
 
-            <Card class="w-full max-w-md">
-                <CardHeader>
-                    <CardTitle>"Welcome to Tauri + Leptos"</CardTitle>
-                    <CardDescription>"Enter your name to get a greeting from Rust backend."</CardDescription>
-                </CardHeader>
-                <CardContent>
+            <p class="text-muted-foreground">"Click on the Tauri and Leptos logos to learn more."</p>
+
+            <Card class="w-full max-w-md border-transparent shadow-none">
+                <CardContent class="pt-6">
                     <form class="flex items-center gap-4" on:submit=greet>
                         <Input
                             id="greet-input"
