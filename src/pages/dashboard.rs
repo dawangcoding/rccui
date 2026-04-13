@@ -23,13 +23,13 @@ pub fn DashboardPage() -> impl IntoView {
 
     view! {
         <div class="flex flex-col items-center justify-center h-full p-8 gap-10 relative overflow-hidden">
-            // Decorative background glow orbs
+            // Decorative background glow orbs — Raycast Blue
             <div class="absolute inset-0 overflow-hidden pointer-events-none select-none" aria-hidden="true">
                 <div class="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full opacity-[0.04]"
-                    style="background: radial-gradient(circle, oklch(0.63 0.24 275) 0%, transparent 70%);"
+                    style="background: radial-gradient(circle, oklch(0.73 0.14 240) 0%, transparent 70%);"
                 />
                 <div class="absolute bottom-1/4 right-1/4 w-[300px] h-[300px] rounded-full opacity-[0.03]"
-                    style="background: radial-gradient(circle, oklch(0.7 0.15 300) 0%, transparent 70%);"
+                    style="background: radial-gradient(circle, oklch(0.68 0.12 260) 0%, transparent 70%);"
                 />
             </div>
 

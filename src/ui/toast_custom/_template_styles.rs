@@ -15,33 +15,33 @@ pub const TEMPLATE_STYLES: &str = r#"
     --leptoaster-info-border-color: var(--border, #e5e5e5);
     --leptoaster-info-text-color: var(--foreground, #222222);
 
-    --leptoaster-success-background-color: oklch(0.55 0.2 155);
-    --leptoaster-success-border-color: oklch(0.45 0.18 155);
+    --leptoaster-success-background-color: oklch(0.55 0.18 160);
+    --leptoaster-success-border-color: oklch(0.45 0.16 160);
     --leptoaster-success-text-color: #ffffff;
 
-    --leptoaster-warn-background-color: oklch(0.72 0.17 80);
-    --leptoaster-warn-border-color: oklch(0.62 0.15 80);
-    --leptoaster-warn-text-color: oklch(0.15 0.01 270);
+    --leptoaster-warn-background-color: oklch(0.72 0.15 80);
+    --leptoaster-warn-border-color: oklch(0.62 0.13 80);
+    --leptoaster-warn-text-color: oklch(0.12 0.005 250);
 
-    --leptoaster-error-background-color: oklch(0.55 0.25 25);
-    --leptoaster-error-border-color: oklch(0.45 0.22 25);
+    --leptoaster-error-background-color: oklch(0.55 0.22 25);
+    --leptoaster-error-border-color: oklch(0.45 0.2 25);
     --leptoaster-error-text-color: #ffffff;
 }
 
 .dark {
-    --leptoaster-info-background-color: var(--card, oklch(0.17 0.013 270));
-    --leptoaster-info-border-color: var(--border, oklch(1 0 0 / 8%));
-    --leptoaster-info-text-color: var(--foreground, oklch(0.95 0.005 270));
+    --leptoaster-info-background-color: var(--card, oklch(0.12 0.003 250));
+    --leptoaster-info-border-color: var(--border, oklch(1 0 0 / 6%));
+    --leptoaster-info-text-color: var(--foreground, oklch(0.97 0.002 250));
 
-    --leptoaster-success-background-color: oklch(0.63 0.19 155);
-    --leptoaster-success-border-color: oklch(0.53 0.17 155);
+    --leptoaster-success-background-color: oklch(0.73 0.14 160);
+    --leptoaster-success-border-color: oklch(0.63 0.12 160);
 
-    --leptoaster-warn-background-color: oklch(0.75 0.17 80);
-    --leptoaster-warn-border-color: oklch(0.65 0.15 80);
-    --leptoaster-warn-text-color: oklch(0.15 0.01 270);
+    --leptoaster-warn-background-color: oklch(0.82 0.15 80);
+    --leptoaster-warn-border-color: oklch(0.72 0.13 80);
+    --leptoaster-warn-text-color: oklch(0.08 0.005 250);
 
-    --leptoaster-error-background-color: oklch(0.65 0.2 25);
-    --leptoaster-error-border-color: oklch(0.55 0.18 25);
+    --leptoaster-error-background-color: oklch(0.68 0.2 25);
+    --leptoaster-error-border-color: oklch(0.58 0.18 25);
 }
 
 .leptoaster-stack-container-bottom:hover > div,
