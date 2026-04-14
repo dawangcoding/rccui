@@ -196,7 +196,7 @@ fn ProjectItem(project: Project) -> impl IntoView {
                 </CollapsibleTrigger>
 
                 // Session list (collapsed content)
-                <CollapsibleContent class="pl-2">
+                <CollapsibleContent class="pl-2 min-w-0">
                     <SessionList
                         project_name=name.clone()
                         sessions=all_sessions

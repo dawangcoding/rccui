@@ -28,7 +28,7 @@ pub fn SessionItem(
     let time_data = parse_relative_time(&last_activity);
 
     view! {
-        <li class="group/session relative">
+        <li class="group/session relative min-w-0">
             <button
                 class=move || {
                     let base = "flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs transition-all duration-200 cursor-pointer select-none";
