@@ -411,7 +411,7 @@ fn SessionList(project_name: String, sessions: Vec<SessionInfo>) -> impl IntoVie
                                                         }
                                                     }
                                                     ctx.projects.set(projects);
-                                                    toaster.success("Session renamed");
+                                                    toaster.success("会话名称已更改");
                                                 }
                                             });
                                         }
@@ -426,7 +426,7 @@ fn SessionList(project_name: String, sessions: Vec<SessionInfo>) -> impl IntoVie
                                     class="px-3 py-1.5 text-xs rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-all duration-200"
                                     on:click=move |_| renaming_session_id.set(None)
                                 >
-                                    "Cancel"
+                                    "取消"
                                 </button>
                                 <button
                                     class="px-3 py-1.5 text-xs rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-200"
@@ -458,7 +458,7 @@ fn SessionList(project_name: String, sessions: Vec<SessionInfo>) -> impl IntoVie
                                                             }
                                                         }
                                                         ctx.projects.set(projects);
-                                                        toaster.success("Session renamed");
+                                                        toaster.success("会话名称已更改");
                                                     }
                                                 });
                                             }
@@ -466,7 +466,7 @@ fn SessionList(project_name: String, sessions: Vec<SessionInfo>) -> impl IntoVie
                                         }
                                     }
                                 >
-                                    "Save"
+                                    "保存"
                                 </button>
                             </div>
                         </div>
