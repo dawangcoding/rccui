@@ -34,7 +34,7 @@ pub fn DashboardPage() -> impl IntoView {
             </div>
 
             // Header section
-            <div class="flex flex-col items-center gap-3 text-center max-w-md relative z-10">
+            <div class="flex flex-col items-center gap-3 text-center max-w-md relative">
                 <h1 class="text-4xl font-bold tracking-tight gradient-text">"RCCUI"</h1>
                 <p class="text-sm text-muted-foreground leading-relaxed">
                     "Multi AI Coding Assistant Manager"
@@ -42,7 +42,7 @@ pub fn DashboardPage() -> impl IntoView {
             </div>
 
             // Provider stats grid
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full max-w-lg relative z-10">
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full max-w-lg relative">
                 {move || {
                     let (claude, cursor, codex, gemini) = stats();
                     view! {
@@ -55,7 +55,7 @@ pub fn DashboardPage() -> impl IntoView {
             </div>
 
             // Bottom section
-            <div class="text-center relative z-10">
+            <div class="text-center relative">
                 {move || {
                     let count = ctx.projects.get().len();
                     if count == 0 {
