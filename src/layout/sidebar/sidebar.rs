@@ -1,4 +1,5 @@
 use leptos::prelude::*;
+use leptos_fluent::tr;
 
 use crate::state::AppContext;
 use crate::ui::sidenav::*;
@@ -15,7 +16,7 @@ pub fn Sidebar() -> impl IntoView {
         <Sidenav variant=SidenavVariant::Sidenav data_collapsible=SidenavCollapsible::Offcanvas>
             <SidenavHeader>
                 <div class="flex items-center gap-2">
-                    <span class="text-sm font-semibold text-foreground truncate">"Projects"</span>
+                    <span class="text-sm font-semibold text-foreground truncate">{move || tr!("sidebar-projects")}</span>
                     <span class="ml-auto text-xs text-muted-foreground tabular-nums">
                         {move || ctx.projects.get().len()}
                     </span>

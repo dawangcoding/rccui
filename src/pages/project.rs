@@ -1,4 +1,5 @@
 use leptos::prelude::*;
+use leptos_fluent::tr;
 
 use crate::state::AppContext;
 use crate::tauri::types::AppTab;
@@ -17,7 +18,7 @@ pub fn ProjectPage() -> impl IntoView {
                 match project {
                     None => view! {
                         <div class="flex items-center justify-center h-full text-sm text-muted-foreground animate-in fade-in duration-150">
-                            "Select a project from the sidebar"
+                            {tr!("project-select-prompt")}
                         </div>
                     }.into_any(),
                     Some(project) => {
@@ -39,29 +40,29 @@ pub fn ProjectPage() -> impl IntoView {
                                         {if !session_display.is_empty() {
                                             Some(view! {
                                                 <p class="mt-1 text-xs text-muted-foreground max-w-sm truncate">
-                                                    "Session: " {session_display}
+                                                    {tr!("project-session-label")} {session_display}
                                                 </p>
                                             })
                                         } else {
                                             None
                                         }}
-                                        <p class="mt-3 text-xs">"Chat - Coming in Phase 2"</p>
+                                        <p class="mt-3 text-xs">{tr!("project-chat-coming")}</p>
                                     </div>
                                 </div>
                             }.into_any(),
                             AppTab::Shell => view! {
                                 <div class="flex items-center justify-center h-full text-sm text-muted-foreground animate-in fade-in duration-150">
-                                    "Shell - Coming in Phase 3"
+                                    {tr!("project-shell-coming")}
                                 </div>
                             }.into_any(),
                             AppTab::Files => view! {
                                 <div class="flex items-center justify-center h-full text-sm text-muted-foreground animate-in fade-in duration-150">
-                                    "Files - Coming in Phase 4"
+                                    {tr!("project-files-coming")}
                                 </div>
                             }.into_any(),
                             AppTab::Git => view! {
                                 <div class="flex items-center justify-center h-full text-sm text-muted-foreground animate-in fade-in duration-150">
-                                    "Git - Coming in Phase 5"
+                                    {tr!("project-git-coming")}
                                 </div>
                             }.into_any(),
                         }

@@ -2,6 +2,7 @@ use leptos::prelude::*;
 use leptos::task::spawn_local;
 use leptos_router::components::{ParentRoute, Route, Router, Routes};
 use leptos_router::path;
+use leptos_fluent::leptos_fluent;
 
 use crate::layout::AppLayout;
 use crate::pages::dashboard::DashboardPage;
@@ -15,6 +16,16 @@ use crate::ui::toast_custom::toaster::{expect_toaster, provide_toaster, Toaster}
 
 #[component]
 pub fn App() -> impl IntoView {
+    // Initialize i18n (must be before all other contexts)
+    leptos_fluent! {
+        locales: "./locales",
+        default_language: "zh-CN",
+        set_language_to_local_storage: true,
+        initial_language_from_local_storage: true,
+        local_storage_key: "lang",
+        sync_html_tag_lang: true,
+    };
+
     // Initialize theme mode (must be before any component that uses ThemeToggle)
     let _theme = ThemeMode::init();
 
@@ -81,7 +92,7 @@ pub fn App() -> impl IntoView {
         <Router>
             <Routes fallback=|| view! {
                 <div class="flex items-center justify-center h-screen text-sm text-muted-foreground">
-                    "Page not found"
+                    {move || leptos_fluent::tr!("page-not-found")}
                 </div>
             }>
                 // Main layout with sidebar wraps all pages

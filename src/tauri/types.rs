@@ -264,6 +264,15 @@ impl AppTab {
         }
     }
 
+    pub fn label_key(&self) -> &'static str {
+        match self {
+            AppTab::Chat => "tab-chat",
+            AppTab::Shell => "tab-shell",
+            AppTab::Files => "tab-files",
+            AppTab::Git => "tab-git",
+        }
+    }
+
     pub fn is_implemented(&self) -> bool {
         matches!(self, AppTab::Chat)
     }

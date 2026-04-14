@@ -1,4 +1,5 @@
 use leptos::prelude::*;
+use leptos_fluent::tr;
 
 use icons::FolderOpen;
 
@@ -37,7 +38,7 @@ pub fn DashboardPage() -> impl IntoView {
             <div class="flex flex-col items-center gap-3 text-center max-w-md relative">
                 <h1 class="text-4xl font-bold tracking-tight gradient-text">"RCCUI"</h1>
                 <p class="text-sm text-muted-foreground leading-relaxed">
-                    "Multi AI Coding Assistant Manager"
+                    {move || tr!("app-subtitle")}
                 </p>
             </div>
 
@@ -64,16 +65,16 @@ pub fn DashboardPage() -> impl IntoView {
                                 <div class="size-12 rounded-xl bg-muted/50 border border-border flex items-center justify-center">
                                     <FolderOpen class="size-5 text-muted-foreground" />
                                 </div>
-                                <p class="text-sm font-medium text-foreground">"No projects yet"</p>
+                                <p class="text-sm font-medium text-foreground">{tr!("dashboard-no-projects")}</p>
                                 <p class="text-xs text-muted-foreground max-w-sm leading-relaxed">
-                                    "Sessions will appear automatically as you use Claude, Cursor, Codex, or Gemini in your projects."
+                                    {tr!("dashboard-no-projects-desc")}
                                 </p>
                             </div>
                         }.into_any()
                     } else {
                         view! {
                             <p class="text-sm text-muted-foreground">
-                                {format!("{count} project(s) found. Select one from the sidebar to get started.")}
+                                {tr!("dashboard-projects-found", { "count" => count })}
                             </p>
                         }.into_any()
                     }

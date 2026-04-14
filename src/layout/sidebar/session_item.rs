@@ -1,4 +1,5 @@
 use leptos::prelude::*;
+use leptos_fluent::tr;
 
 use crate::tauri::types::SessionInfo;
 
@@ -24,7 +25,7 @@ pub fn SessionItem(
     let last_activity = session.last_activity.clone();
     let summary_for_rename = summary.clone();
 
-    let time_display = format_relative_time(&last_activity);
+    let time_data = parse_relative_time(&last_activity);
 
     view! {
         <li class="group/session relative">
@@ -60,7 +61,14 @@ pub fn SessionItem(
                     } else {
                         None
                     }}
-                    <span>{time_display}</span>
+                    <span>{move || match time_data {
+                        ("time-just-now", _) => tr!("time-just-now"),
+                        ("time-minutes", Some(v)) => tr!("time-minutes", { "value" => v }),
+                        ("time-hours", Some(v)) => tr!("time-hours", { "value" => v }),
+                        ("time-days", Some(v)) => tr!("time-days", { "value" => v }),
+                        ("time-weeks", Some(v)) => tr!("time-weeks", { "value" => v }),
+                        _ => tr!("time-just-now"),
+                    }}</span>
                 </span>
             </button>
 
@@ -69,7 +77,7 @@ pub fn SessionItem(
                 // Rename button
                 <button
                     class="size-5 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-all duration-150"
-                    title="Rename"
+                    title={move || tr!("action-rename")}
                     on:click=move |e| {
                         e.stop_propagation();
                         on_rename.run((session_id_ren.clone(), summary_for_rename.clone()));
@@ -82,7 +90,7 @@ pub fn SessionItem(
                 // Delete button
                 <button
                     class="size-5 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all duration-150"
-                    title="Delete"
+                    title={move || tr!("action-delete")}
                     on:click=move |e| {
                         e.stop_propagation();
                         on_delete.run(session_id_del.clone());
@@ -132,10 +140,8 @@ pub fn ProviderIcon(provider: String) -> impl IntoView {
     }
 }
 
-/// Format an ISO timestamp string into a human-readable relative time.
-fn format_relative_time(timestamp: &str) -> String {
-    // Parse ISO 8601 timestamp and compute relative time
-    // For simplicity, we extract just the date part and compare
+/// Parse an ISO timestamp string into a translation key and optional value.
+fn parse_relative_time(timestamp: &str) -> (&'static str, Option<i64>) {
     let now = js_sys::Date::new_0();
     let now_ms = now.get_time();
 
@@ -143,25 +149,21 @@ fn format_relative_time(timestamp: &str) -> String {
     let parsed_ms = parsed.get_time();
 
     if parsed_ms.is_nan() {
-        return timestamp.to_string();
+        return ("time-just-now", None);
     }
 
     let diff_ms = now_ms - parsed_ms;
     let diff_secs = (diff_ms / 1000.0) as i64;
 
     if diff_secs < 60 {
-        "just now".to_string()
+        ("time-just-now", None)
     } else if diff_secs < 3600 {
-        let mins = diff_secs / 60;
-        format!("{mins}m")
+        ("time-minutes", Some(diff_secs / 60))
     } else if diff_secs < 86400 {
-        let hours = diff_secs / 3600;
-        format!("{hours}h")
+        ("time-hours", Some(diff_secs / 3600))
     } else if diff_secs < 604800 {
-        let days = diff_secs / 86400;
-        format!("{days}d")
+        ("time-days", Some(diff_secs / 86400))
     } else {
-        let weeks = diff_secs / 604800;
-        format!("{weeks}w")
+        ("time-weeks", Some(diff_secs / 604800))
     }
 }

@@ -1,4 +1,5 @@
 use leptos::prelude::*;
+use leptos_fluent::tr;
 
 use crate::ui::separator::Separator;
 use crate::ui::sidenav::SidenavFooter as SidenavFooterBase;
@@ -24,7 +25,7 @@ pub fn SidebarFooter() -> impl IntoView {
                         </svg>
                     </a>
                     <TooltipContent position=TooltipPosition::Top>
-                        "Settings"
+                        {move || tr!("tooltip-settings")}
                     </TooltipContent>
                 </Tooltip>
 
@@ -32,7 +33,7 @@ pub fn SidebarFooter() -> impl IntoView {
                 <Tooltip>
                     <ThemeToggle />
                     <TooltipContent position=TooltipPosition::Top>
-                        "Toggle theme"
+                        {move || tr!("tooltip-toggle-theme")}
                     </TooltipContent>
                 </Tooltip>
             </div>

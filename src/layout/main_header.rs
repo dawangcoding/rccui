@@ -1,4 +1,5 @@
 use leptos::prelude::*;
+use leptos_fluent::tr;
 
 use icons::{MessageSquare, SquareTerminal, FolderOpen, GitBranch};
 
@@ -28,7 +29,7 @@ pub fn MainHeader() -> impl IntoView {
         ctx.selected_project
             .get()
             .map(|p| p.display_name.clone())
-            .unwrap_or_else(|| "Select a project".to_string())
+            .unwrap_or_else(|| tr!("select-project"))
     };
 
     let tabs = [AppTab::Chat, AppTab::Shell, AppTab::Files, AppTab::Git];
@@ -54,7 +55,6 @@ pub fn MainHeader() -> impl IntoView {
             // Tab buttons
             <nav class="flex items-center gap-0.5 bg-muted/60 rounded-lg p-0.5 h-8 border border-border/50">
                 {tabs.into_iter().map(|tab| {
-                    let label = tab.label();
                     let is_active = Memo::new(move |_| ctx.active_tab.get() == tab);
                     let implemented = tab.is_implemented();
 
@@ -73,7 +73,12 @@ pub fn MainHeader() -> impl IntoView {
                             on:click=move |_| ctx.active_tab.set(tab)
                         >
                             <TabIcon tab=tab />
-                            {label}
+                            {move || match tab {
+                                AppTab::Chat => tr!("tab-chat"),
+                                AppTab::Shell => tr!("tab-shell"),
+                                AppTab::Files => tr!("tab-files"),
+                                AppTab::Git => tr!("tab-git"),
+                            }}
                         </button>
                     };
 
@@ -84,7 +89,7 @@ pub fn MainHeader() -> impl IntoView {
                             <Tooltip>
                                 {btn}
                                 <TooltipContent position=TooltipPosition::Bottom>
-                                    "Coming soon"
+                                    {move || tr!("coming-soon")}
                                 </TooltipContent>
                             </Tooltip>
                         }.into_any()
