@@ -10,7 +10,7 @@ pub fn SessionItem(
     is_selected: Memo<bool>,
     #[prop(into)] on_click: Callback<()>,
     #[prop(into)] on_delete: Callback<String>,
-    #[prop(into)] on_rename: Callback<String>,
+    #[prop(into)] on_rename: Callback<(String, String)>,
 ) -> impl IntoView {
     let session_id = session.id.clone();
     let session_id_del = session_id.clone();
@@ -22,6 +22,7 @@ pub fn SessionItem(
         .unwrap_or_else(|| session.summary.clone());
     let message_count = session.message_count;
     let last_activity = session.last_activity.clone();
+    let summary_for_rename = summary.clone();
 
     let time_display = format_relative_time(&last_activity);
 
@@ -71,7 +72,7 @@ pub fn SessionItem(
                     title="Rename"
                     on:click=move |e| {
                         e.stop_propagation();
-                        on_rename.run(session_id_ren.clone());
+                        on_rename.run((session_id_ren.clone(), summary_for_rename.clone()));
                     }
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

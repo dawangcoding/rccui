@@ -212,6 +212,8 @@ fn ProjectItem(project: Project) -> impl IntoView {
 fn SessionList(project_name: String, sessions: Vec<SessionInfo>) -> impl IntoView {
     let ctx = expect_context::<AppContext>();
     let session_ctx = expect_context::<SessionContext>();
+    // Capture toaster in reactive context (safe here, may not be inside spawn_local)
+    let toaster = expect_toaster();
 
     // Rename dialog state
     let renaming_session_id = RwSignal::new(Option::<String>::None);
@@ -223,6 +225,8 @@ fn SessionList(project_name: String, sessions: Vec<SessionInfo>) -> impl IntoVie
 
     let project_name_more = project_name.clone();
     let project_name_del = project_name.clone();
+    let toaster_del = toaster.clone();
+    let toaster_ren = toaster;
 
     view! {
         <ul class="flex flex-col gap-0.5 py-1">
@@ -255,9 +259,9 @@ fn SessionList(project_name: String, sessions: Vec<SessionInfo>) -> impl IntoVie
                     })
                 };
 
-                let on_rename = Callback::new(move |id: String| {
+                let on_rename = Callback::new(move |(id, name): (String, String)| {
                     renaming_session_id.set(Some(id));
-                    rename_value.set(String::new());
+                    rename_value.set(name);
                 });
 
                 view! {
@@ -328,10 +332,12 @@ fn SessionList(project_name: String, sessions: Vec<SessionInfo>) -> impl IntoVie
                                     class="px-3 py-1.5 text-xs rounded-lg bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-all duration-200"
                                     on:click={
                                         let session_id = session_id_confirm.clone();
+                                        let toaster = toaster_del.clone();
                                         move |_| {
                                             let provider = deleting_provider.get_untracked().unwrap_or_default();
                                             let pn = project_name.clone();
                                             let sid = session_id.clone();
+                                            let toaster = toaster.clone();
                                             deleting_session_id.set(None);
                                             deleting_provider.set(None);
                                             spawn_local(async move {
@@ -340,13 +346,12 @@ fn SessionList(project_name: String, sessions: Vec<SessionInfo>) -> impl IntoVie
                                                     Some(&provider),
                                                     Some(&pn),
                                                 ).await {
-                                                    expect_toaster().error(format!("Failed to delete session: {e}"));
+                                                    toaster.error(format!("Failed to delete session: {e}"));
                                                 } else {
-                                                    expect_toaster().success("Session deleted");
+                                                    toaster.success("Session deleted");
                                                 }
                                                 // Reload projects to reflect the deletion
                                                 if let Ok(projects) = commands::list_projects(true).await {
-                                                    let ctx = expect_context::<AppContext>();
                                                     ctx.projects.set(projects);
                                                 }
                                             });
@@ -366,10 +371,12 @@ fn SessionList(project_name: String, sessions: Vec<SessionInfo>) -> impl IntoVie
         {move || {
             renaming_session_id.get().map(|session_id| {
                 let session_id_submit = session_id.clone();
+                let toaster_e = toaster_ren.clone();
+                let toaster_s = toaster_ren.clone();
                 view! {
                     <div class="fixed inset-0 z-50 flex items-center justify-center" style="background: oklch(0 0 0 / 60%); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);">
                         <div class="border border-border rounded-xl p-5 shadow-lg w-80 animate-in fade-in zoom-in-95 duration-200" style="background: var(--popover);">
-                            <p class="text-sm font-semibold mb-3">"Rename Session"</p>
+                            <p class="text-sm font-semibold mb-3">"重命名会话"</p>
                             <input
                                 type="text"
                                 placeholder="Enter new name..."
@@ -383,16 +390,28 @@ fn SessionList(project_name: String, sessions: Vec<SessionInfo>) -> impl IntoVie
                                         let val = rename_value.get_untracked();
                                         if !val.is_empty() {
                                             let sid = session_id_submit.clone();
+                                            let toaster = toaster_e.clone();
                                             spawn_local(async move {
                                                 if let Err(e) = commands::set_session_name(&sid, &val, None).await {
-                                                    expect_toaster().error(format!("Failed to rename session: {e}"));
+                                                    toaster.error(format!("Failed to rename session: {e}"));
                                                 } else {
-                                                    expect_toaster().success("Session renamed");
-                                                }
-                                                // Reload projects
-                                                if let Ok(projects) = commands::list_projects(true).await {
-                                                    let ctx = expect_context::<AppContext>();
+                                                    // Update session name in-place then set signal to trigger re-render
+                                                    let mut projects = ctx.projects.get_untracked();
+                                                    for project in projects.iter_mut() {
+                                                        for session in project.sessions.iter_mut()
+                                                            .chain(project.cursor_sessions.iter_mut())
+                                                            .chain(project.codex_sessions.iter_mut())
+                                                            .chain(project.gemini_sessions.iter_mut())
+                                                        {
+                                                            if session.id == sid {
+                                                                session.name = Some(val.clone());
+                                                                session.summary = val.clone();
+                                                                break;
+                                                            }
+                                                        }
+                                                    }
                                                     ctx.projects.set(projects);
+                                                    toaster.success("Session renamed");
                                                 }
                                             });
                                         }
@@ -413,20 +432,33 @@ fn SessionList(project_name: String, sessions: Vec<SessionInfo>) -> impl IntoVie
                                     class="px-3 py-1.5 text-xs rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-200"
                                     on:click={
                                         let session_id = session_id.clone();
+                                        let toaster = toaster_s.clone();
                                         move |_| {
                                             let val = rename_value.get_untracked();
                                             if !val.is_empty() {
                                                 let sid = session_id.clone();
+                                                let toaster = toaster.clone();
                                                 spawn_local(async move {
                                                     if let Err(e) = commands::set_session_name(&sid, &val, None).await {
-                                                        expect_toaster().error(format!("Failed to rename session: {e}"));
+                                                        toaster.error(format!("Failed to rename session: {e}"));
                                                     } else {
-                                                        expect_toaster().success("Session renamed");
-                                                    }
-                                                    // Reload projects
-                                                    if let Ok(projects) = commands::list_projects(true).await {
-                                                        let ctx = expect_context::<AppContext>();
+                                                        // Update session name in-place then set signal to trigger re-render
+                                                        let mut projects = ctx.projects.get_untracked();
+                                                        for project in projects.iter_mut() {
+                                                            for session in project.sessions.iter_mut()
+                                                                .chain(project.cursor_sessions.iter_mut())
+                                                                .chain(project.codex_sessions.iter_mut())
+                                                                .chain(project.gemini_sessions.iter_mut())
+                                                            {
+                                                                if session.id == sid {
+                                                                    session.name = Some(val.clone());
+                                                                    session.summary = val.clone();
+                                                                    break;
+                                                                }
+                                                            }
+                                                        }
                                                         ctx.projects.set(projects);
+                                                        toaster.success("Session renamed");
                                                     }
                                                 });
                                             }
