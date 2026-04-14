@@ -405,3 +405,73 @@ After applying a DESIGN.md:
 - `ui_config.toml` uses relative path: `base_path_components = "src/components"` (no leading slash)
 - Backend commands are registered in `src-tauri/src/lib.rs` via `invoke_handler(tauri::generate_handler![...])`
 - When adding new commands, remember to both create the function and register it in `lib.rs`
+
+## Leptos 0.8 CSR Pitfalls & Solutions
+
+### spawn_local 中不要调用 expect_context / expect_toaster
+
+**问题**: 在 `spawn_local` 的 async 块中调用 `expect_context::<T>()` 或 `expect_toaster()`（内部也是 `expect_context`）可能因为缺失 reactive owner 而 panic，导致整个 async 块中止，后续代码（如信号更新）不会执行。
+
+**症状**: 后端操作成功（数据已保存），但 UI 不刷新，toast 也不显示。
+
+**正确做法**: 在 `spawn_local` 外部（组件作用域或事件处理闭包的同步部分）捕获 context，然后通过 clone 传入 async 块：
+
+```rust
+// 在组件作用域中捕获（有效的 reactive 上下文）
+let ctx = expect_context::<AppContext>();   // Copy，可直接捕获
+let toaster = expect_toaster();            // Clone，需要显式 clone
+
+// 事件处理中
+let toaster = toaster.clone();  // clone 给 spawn_local
+spawn_local(async move {
+    // 这里直接使用 ctx (Copy) 和 toaster (已 clone 进来)
+    if let Err(e) = some_command().await {
+        toaster.error(format!("Failed: {e}"));
+    } else {
+        ctx.some_signal.set(new_value);
+        toaster.success("Done");
+    }
+});
+```
+
+**注意**: `AppContext` 是 `#[derive(Clone, Copy)]`（内部全是 `RwSignal`，本身 `Copy`），无需 clone。`ToasterContext` 包含 `Arc<Mutex<...>>`，是 `Clone` 但不是 `Copy`，需要显式 clone。
+
+### 信号更新触发 UI 刷新：set() vs update()
+
+- `ctx.projects.set(new_vec)` — 替换整个值，始终触发通知，推荐用于需要确保 UI 刷新的场景
+- `ctx.projects.update(|v| { ... })` — 原地修改，也会触发通知，但在某些边界情况下可能不如 `set()` 可靠
+- **推荐模式**（clone-modify-set）：
+  ```rust
+  let mut projects = ctx.projects.get_untracked();
+  // 修改 projects...
+  ctx.projects.set(projects);  // 显式 set 触发所有订阅者
+  ```
+
+### collect_view() 列表渲染
+
+`collect_view()` 不带 key，父级响应式闭包重新执行时会**整体替换** DOM 子树（不是 diff）。对于信号驱动的列表刷新这是可行的，但要确保信号确实被正确更新（参见上面的 spawn_local 陷阱）。如果需要高性能的增量更新，使用 `<For each=... key=...>` 组件。
+
+## CSS z-index 与 Stacking Context
+
+### Sidebar 弹出框被页面内容遮挡
+
+**问题**: Sidebar（`SidenavContainer`）使用 `fixed z-10` 创建了 stacking context，内部弹出框的 `z-50` 受限于父级的 `z-10`。如果页面内容区也有 `relative z-10`，由于 DOM 顺序（`SidenavInset` 在 `Sidenav` 之后），页面内容会覆盖 sidebar 的弹出框。
+
+**解决方案**: 移除页面内容区不必要的 `z-10`（如 `src/pages/dashboard.rs` 中的内容 section），依靠 DOM 源顺序保证层叠关系。不要给 sidebar 内的弹出框使用 `<Portal>`（会导致 `FnOnce` vs `Fn` 编译错误，因为 Portal children 要求 `Fn`）。
+
+## Non-Copy 类型在 view! 多闭包中的传递
+
+`view!` 宏中多个 `{move || { ... }}` 闭包会各自捕获变量。对于 `Clone` 但非 `Copy` 的类型（如 `ToasterContext`、`String`），需要在 `view!` 之前为每个闭包准备独立的 clone：
+
+```rust
+let toaster = expect_toaster();
+let toaster_for_dialog_a = toaster.clone();
+let toaster_for_dialog_b = toaster;  // 最后一个可以直接 move
+
+view! {
+    {move || { /* 使用 toaster_for_dialog_a */ }}
+    {move || { /* 使用 toaster_for_dialog_b */ }}
+}
+```
+
+在嵌套闭包链中（`move || { .map(|x| { on:click={ move |_| { spawn_local(async move { }) } } }) }`），每一层 move 都需要一次 clone。
