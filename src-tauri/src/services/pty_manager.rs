@@ -46,7 +46,7 @@ pub fn build_shell_command(
     initial_command: Option<&str>,
     is_plain_shell: bool,
 ) -> (String, Vec<String>) {
-    let shell = "bash".to_string();
+    let shell = std::env::var("SHELL").unwrap_or_else(|_| "zsh".to_string());
 
     let command = if is_plain_shell {
         // Plain shell: run the initial command directly, or just open bash
