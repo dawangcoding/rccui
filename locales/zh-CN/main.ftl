@@ -85,3 +85,13 @@ settings-language-desc = 选择界面显示语言
 
 # ── 引导页 ──
 onboarding-coming = 引导 - 第6阶段推出
+
+# ── 终端 ──
+shell-empty-state = 选择一个项目以启动终端
+shell-connecting = 连接中...
+shell-connected = 已连接
+shell-disconnected = 已断开
+shell-reconnect = 重新连接
+shell-auth-required = 需要登录认证
+shell-open-link = 打开链接
+toast-shell-init-failed = 初始化终端失败

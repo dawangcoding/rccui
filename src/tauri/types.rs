@@ -212,12 +212,17 @@ pub struct TokenUsage {
 #[serde(rename_all = "camelCase")]
 pub struct ShellInitParams {
     pub project_path: String,
-    pub session_id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub session_id: Option<String>,
+    #[serde(default)]
+    pub has_session: bool,
     pub provider: String,
     pub cols: u16,
     pub rows: u16,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub initial_command: Option<String>,
     #[serde(default)]
-    pub command: Option<String>,
+    pub is_plain_shell: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -229,14 +234,12 @@ pub struct ShellInitResult {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct ShellOutputPayload {
     pub session_key: String,
     pub data: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct ShellAuthUrlPayload {
     pub session_key: String,
     pub url: String,
@@ -313,6 +316,6 @@ impl AppTab {
     }
 
     pub fn is_implemented(&self) -> bool {
-        matches!(self, AppTab::Chat)
+        matches!(self, AppTab::Chat | AppTab::Shell)
     }
 }

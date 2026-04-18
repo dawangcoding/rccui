@@ -85,3 +85,13 @@ settings-language-desc = Choose the display language
 
 # ── Onboarding ──
 onboarding-coming = Onboarding - Coming in Phase 6
+
+# ── Shell ──
+shell-empty-state = Select a project to start a terminal
+shell-connecting = Connecting...
+shell-connected = Connected
+shell-disconnected = Disconnected
+shell-reconnect = Reconnect
+shell-auth-required = Authentication required
+shell-open-link = Open link
+toast-shell-init-failed = Failed to initialize terminal

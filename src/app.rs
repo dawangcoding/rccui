@@ -10,7 +10,7 @@ use crate::pages::onboarding::OnboardingPage;
 use crate::pages::project::ProjectPage;
 use crate::pages::settings::SettingsPage;
 use crate::hooks::use_theme_mode::ThemeMode;
-use crate::state::{AppContext, ChatContext, SessionContext};
+use crate::state::{AppContext, ChatContext, SessionContext, ShellContext};
 use crate::tauri::{commands, events};
 use crate::ui::toast_custom::toaster::{expect_toaster, provide_toaster, Toaster};
 
@@ -43,6 +43,10 @@ pub fn App() -> impl IntoView {
     // Create chat context
     let chat_ctx = ChatContext::new();
     provide_context(chat_ctx);
+
+    // Create shell context
+    let shell_ctx = ShellContext::new();
+    provide_context(shell_ctx);
 
     // Load projects on mount
     spawn_local(async move {
@@ -95,6 +99,24 @@ pub fn App() -> impl IntoView {
     spawn_local(async move {
         let _unlisten = events::listen_chat_response(move |response| {
             chat_ctx.handle_chat_response(response);
+        })
+        .await;
+        std::mem::forget(_unlisten);
+    });
+
+    // Listen for shell_output events (PTY stdout data)
+    spawn_local(async move {
+        let _unlisten = events::listen_shell_output(move |payload| {
+            shell_ctx.handle_output(payload);
+        })
+        .await;
+        std::mem::forget(_unlisten);
+    });
+
+    // Listen for shell_auth_url events (OAuth URL detection)
+    spawn_local(async move {
+        let _unlisten = events::listen_shell_auth_url(move |payload| {
+            shell_ctx.handle_auth_url(payload);
         })
         .await;
         std::mem::forget(_unlisten);

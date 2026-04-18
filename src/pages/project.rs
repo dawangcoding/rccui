@@ -2,6 +2,7 @@ use leptos::prelude::*;
 use leptos_fluent::tr;
 
 use crate::features::chat::chat_panel::ChatPanel;
+use crate::features::shell::shell_panel::ShellPanel;
 use crate::state::AppContext;
 use crate::tauri::types::AppTab;
 
@@ -28,9 +29,7 @@ pub fn ProjectPage() -> impl IntoView {
                                 <ChatPanel />
                             }.into_any(),
                             AppTab::Shell => view! {
-                                <div class="flex items-center justify-center h-full text-sm text-muted-foreground animate-in fade-in duration-150">
-                                    {tr!("project-shell-coming")}
-                                </div>
+                                <ShellPanel />
                             }.into_any(),
                             AppTab::Files => view! {
                                 <div class="flex items-center justify-center h-full text-sm text-muted-foreground animate-in fade-in duration-150">

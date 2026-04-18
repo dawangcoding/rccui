@@ -15,13 +15,51 @@ Multi AI coding assistant management desktop app (rccui). Supports Claude, Curso
 ```
 src/                                # Frontend (Leptos WASM)
 ├── main.rs                         # Entry point: mod declarations + mount_to_body
-├── app.rs                          # Root App component
+├── app.rs                          # Root App component (leptos_fluent! + Router + context providers)
 ├── ui/                             # rust/ui components (85+ components)
 │   ├── mod.rs
 │   ├── button.rs, input.rs, card.rs, dialog.rs, ...
 │   └── toast_custom/               # Directory-based component
 ├── hooks/                          # rust/ui hooks (26 hooks)
-├── utils/                          # Utilities (date, country, query)
+├── features/                       # Feature modules (business UI)
+│   ├── chat/                       # Chat feature
+│   │   ├── chat_panel.rs           # Main chat panel (assembles input + messages + permission)
+│   │   ├── chat_input.rs           # Message input textarea
+│   │   ├── message_list.rs         # Scrollable message container with auto-expand logic
+│   │   ├── message_item.rs         # Individual message rendering (text/thinking/tool_use/tool_result)
+│   │   ├── permission_dialog.rs    # Tool execution permission dialog
+│   │   └── quick_settings.rs       # Provider selector dropdown
+│   ├── shell/                      # Shell feature
+│   │   ├── shell_panel.rs          # Terminal panel wrapper
+│   │   └── terminal.rs             # xterm.js integration
+│   ├── files/                      # File browser (placeholder)
+│   ├── git/                        # Git operations (placeholder)
+│   ├── onboarding/                 # First-time setup
+│   └── settings/                   # Settings (placeholder)
+├── state/                          # Reactive state management
+│   ├── app_state.rs                # AppContext: global signals (projects, sessions, sidebar, etc.)
+│   ├── chat_state.rs               # ChatContext: messages, streaming, event handling
+│   ├── session_state.rs            # SessionContext: session list, active session
+│   └── shell_state.rs              # ShellContext: terminal sessions
+├── layout/                         # Layout components
+│   ├── app_layout.rs               # Root layout (SidenavContainer + SidenavInset + MainHeader)
+│   ├── main_header.rs              # Top header with tab navigation
+│   ├── editor_sidebar.rs           # Right-side editor sidebar
+│   └── sidebar/                    # Left sidebar
+│       ├── sidebar.rs              # Sidebar container
+│       ├── project_list.rs         # Project list with navigation
+│       ├── session_item.rs         # Session list item
+│       └── sidebar_footer.rs       # Sidebar footer (theme toggle, settings)
+├── pages/                          # Route pages
+│   ├── dashboard.rs                # Dashboard (project overview)
+│   ├── project.rs                  # Project detail (integrates ChatPanel + ShellPanel)
+│   ├── onboarding.rs               # Onboarding wizard
+│   └── settings.rs                 # Settings page (API keys, language, theme)
+├── tauri/                          # Tauri bridge (frontend ↔ backend)
+│   ├── commands.rs                 # invoke() wrappers for backend commands
+│   ├── events.rs                   # listen() wrappers for backend events
+│   └── types.rs                    # Shared TypeScript-like types (ChatResponse, etc.)
+├── utils/                          # Utilities (date, country, phone_number, query)
 └── constants/                      # Constants (pagination)
 
 src-tauri/src/                      # Backend (Tauri)
@@ -238,6 +276,37 @@ pub async fn some_command(
 - **Shell**: `shell_init` creates/reconnects PTY, returns `{ sessionKey, buffer, reconnected }`. Reader task emits `shell_output` events. `shell_detach` starts 30-min cleanup timer. Buffer holds up to `PTY_BUFFER_CAP` (5000) lines.
 - **File Watcher**: Uses `notify`/`notify_debouncer_mini` (300ms debounce) to watch `~/.claude/.cursor/.codex/.gemini` directories. Emits `projects_updated` events on changes.
 - **No Auth**: Desktop app uses `LOCAL_USER_ID = 1`, no authentication layer.
+
+### Chat Streaming Architecture
+
+Frontend listens to `chat_response` Tauri events via `ChatContext` (`src/state/chat_state.rs`). Each event has a `kind` field dispatching to different handlers:
+
+| Event Kind | Description | Message Kind |
+|------------|-------------|--------------|
+| `stream_delta` | Incremental text chunk | Accumulated in `stream_content` signal |
+| `thinking` | Model thinking/reasoning content | `"thinking"` |
+| `tool_use` | Tool invocation (name + input JSON) | `"tool_use"` |
+| `tool_result` | Tool execution result | `"tool_result"` |
+| `permission_request` | Permission dialog for tool execution | Sets `pending_permission` signal |
+| `complete` | Stream finished | Flushes remaining text |
+| `error` | Error occurred | `"error"` |
+| `session_created` | New session ID assigned | Updates `active_session_id` |
+
+**Critical pattern — stream content flush**: Between `stream_delta` events, text accumulates in `stream_content: RwSignal<String>`. Before any structural event (thinking, tool_use, tool_result, permission_request, error, complete), the accumulated text MUST be flushed to a `NormalizedMessage` with kind `"text"`. This is handled by `flush_stream_content()` helper. Forgetting to flush causes text summaries to be lost between tool operations.
+
+**tool_result JSON extraction**: Backend sends `tool_result` as `Option<serde_json::Value>` in the form `{"content": "...", "isError": false}`. The frontend must extract the `content` field (not serialize the whole object), matching the history adapter's behavior in `providers/claude/adapter.rs`.
+
+**Collapsible auto-expand**: During streaming, `MessageList` computes the last collapsible message index and passes `auto_expand=true` to that `MessageItem`. When streaming ends, all collapsibles default to collapsed.
+
+### Flexbox Overflow Prevention
+
+In flex layouts, children default to `min-width: auto`, allowing content (especially `<pre>` blocks) to push containers wider than the viewport. The fix is adding `min-w-0` at every level of the flex chain:
+
+- `app_layout.rs`: `SidenavInset class="min-w-0"` + `<main class="flex-1 min-w-0 overflow-hidden">`
+- `project.rs`: Container `<div class="... min-w-0 overflow-hidden">`
+- `chat_panel.rs`: `<div class="... min-w-0">`
+- `message_list.rs`: Scroll container `min-w-0 overflow-x-hidden`
+- `message_item.rs`: Message bubble `min-w-0 overflow-hidden`
 
 ## Key Dependencies
 

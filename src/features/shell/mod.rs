@@ -1,1 +1,2 @@
-// Shell feature - will be implemented in Phase 3.
+pub mod shell_panel;
+pub mod terminal;

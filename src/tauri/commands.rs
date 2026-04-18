@@ -236,7 +236,11 @@ pub async fn get_session_token_usage(
 // ─── Shell Commands ──────────────────────────────────────────────────────────
 
 pub async fn shell_init(params: ShellInitParams) -> Result<ShellInitResult, String> {
-    call("shell_init", &params).await
+    #[derive(Serialize)]
+    struct Args {
+        params: ShellInitParams,
+    }
+    call("shell_init", &Args { params }).await
 }
 
 #[derive(Serialize)]
