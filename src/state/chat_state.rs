@@ -179,6 +179,55 @@ impl ChatContext {
         });
     }
 
+    /// Flush accumulated stream_content into a text message.
+    /// Returns the provider enum for reuse by the caller.
+    fn flush_stream_content(&self, provider_str: &str) -> Option<SessionProvider> {
+        let stream = self.stream_content.get_untracked();
+        if stream.trim().is_empty() {
+            // Nothing meaningful to flush — clear any whitespace-only content
+            if !stream.is_empty() {
+                self.stream_content.set(String::new());
+            }
+            return None;
+        }
+        let session_id = self
+            .active_session_id
+            .get_untracked()
+            .unwrap_or_default();
+        let provider = match provider_str {
+            "cursor" => SessionProvider::Cursor,
+            "codex" => SessionProvider::Codex,
+            "gemini" => SessionProvider::Gemini,
+            _ => SessionProvider::Claude,
+        };
+        let text_msg = NormalizedMessage {
+            id: format!("text_{}", js_sys::Date::now() as u64),
+            session_id,
+            timestamp: js_sys::Date::new_0()
+                .to_iso_string()
+                .as_string()
+                .unwrap_or_default(),
+            provider,
+            kind: "text".to_string(),
+            role: Some("assistant".to_string()),
+            content: Some(stream),
+            tool_name: None,
+            tool_input: None,
+            tool_id: None,
+            is_error: None,
+            request_id: None,
+            input: None,
+            context: None,
+            new_session_id: None,
+            exit_code: None,
+            aborted: None,
+            images: None,
+        };
+        self.messages.update(|msgs| msgs.push(text_msg));
+        self.stream_content.set(String::new());
+        Some(provider)
+    }
+
     /// Handle an incoming chat_response event.
     pub fn handle_chat_response(&self, resp: ChatResponse) {
         let ctx = *self;
@@ -209,49 +258,13 @@ impl ChatContext {
                 }
             }
             "complete" => {
-                // Finalize the streaming message
-                let stream = ctx.stream_content.get_untracked();
-                if !stream.is_empty() {
-                    let session_id = ctx
-                        .active_session_id
-                        .get_untracked()
-                        .unwrap_or_default();
-                    let provider_str = resp.provider.as_str();
-                    let provider = match provider_str {
-                        "cursor" => SessionProvider::Cursor,
-                        "codex" => SessionProvider::Codex,
-                        "gemini" => SessionProvider::Gemini,
-                        _ => SessionProvider::Claude,
-                    };
-                    let msg = NormalizedMessage {
-                        id: resp.id.clone(),
-                        session_id,
-                        timestamp: js_sys::Date::new_0()
-                            .to_iso_string()
-                            .as_string()
-                            .unwrap_or_default(),
-                        provider,
-                        kind: "text".to_string(),
-                        role: Some("assistant".to_string()),
-                        content: Some(stream),
-                        tool_name: None,
-                        tool_input: None,
-                        tool_id: None,
-                        is_error: None,
-                        request_id: None,
-                        input: None,
-                        context: None,
-                        new_session_id: None,
-                        exit_code: resp.exit_code,
-                        aborted: resp.aborted,
-                        images: None,
-                    };
-                    ctx.messages.update(|msgs| msgs.push(msg));
-                }
-                ctx.stream_content.set(String::new());
+                ctx.flush_stream_content(resp.provider.as_str());
                 ctx.is_streaming.set(false);
             }
             "error" => {
+                // Flush any pending text before the error
+                ctx.flush_stream_content(resp.provider.as_str());
+
                 let session_id = ctx
                     .active_session_id
                     .get_untracked()
@@ -287,10 +300,11 @@ impl ChatContext {
                     images: None,
                 };
                 ctx.messages.update(|msgs| msgs.push(msg));
-                ctx.stream_content.set(String::new());
                 ctx.is_streaming.set(false);
             }
             "permission_request" => {
+                // Flush any pending text before showing permission dialog
+                ctx.flush_stream_content(resp.provider.as_str());
                 if let (Some(request_id), Some(session_id)) =
                     (&resp.request_id, &resp.session_id)
                 {
@@ -307,6 +321,9 @@ impl ChatContext {
                 }
             }
             "tool_use" => {
+                // Flush any accumulated stream content first
+                ctx.flush_stream_content(resp.provider.as_str());
+
                 let session_id = ctx
                     .active_session_id
                     .get_untracked()
@@ -318,36 +335,6 @@ impl ChatContext {
                     "gemini" => SessionProvider::Gemini,
                     _ => SessionProvider::Claude,
                 };
-
-                // Flush any accumulated stream content first
-                let stream = ctx.stream_content.get_untracked();
-                if !stream.is_empty() {
-                    let text_msg = NormalizedMessage {
-                        id: format!("text_{}", js_sys::Date::now() as u64),
-                        session_id: session_id.clone(),
-                        timestamp: js_sys::Date::new_0()
-                            .to_iso_string()
-                            .as_string()
-                            .unwrap_or_default(),
-                        provider,
-                        kind: "text".to_string(),
-                        role: Some("assistant".to_string()),
-                        content: Some(stream),
-                        tool_name: None,
-                        tool_input: None,
-                        tool_id: None,
-                        is_error: None,
-                        request_id: None,
-                        input: None,
-                        context: None,
-                        new_session_id: None,
-                        exit_code: None,
-                        aborted: None,
-                        images: None,
-                    };
-                    ctx.messages.update(|msgs| msgs.push(text_msg));
-                    ctx.stream_content.set(String::new());
-                }
 
                 let msg = NormalizedMessage {
                     id: resp.id.clone(),
@@ -375,6 +362,9 @@ impl ChatContext {
                 ctx.messages.update(|msgs| msgs.push(msg));
             }
             "tool_result" => {
+                // Flush any accumulated stream content before the tool result
+                ctx.flush_stream_content(resp.provider.as_str());
+
                 let session_id = ctx
                     .active_session_id
                     .get_untracked()
@@ -480,6 +470,9 @@ impl ChatContext {
             "thinking" => {
                 if let Some(content) = resp.content.clone() {
                     if !content.is_empty() {
+                        // Flush any accumulated stream content first
+                        ctx.flush_stream_content(resp.provider.as_str());
+
                         let session_id = ctx
                             .active_session_id
                             .get_untracked()
@@ -491,36 +484,6 @@ impl ChatContext {
                             "gemini" => SessionProvider::Gemini,
                             _ => SessionProvider::Claude,
                         };
-
-                        // Flush any accumulated stream content first
-                        let stream = ctx.stream_content.get_untracked();
-                        if !stream.is_empty() {
-                            let text_msg = NormalizedMessage {
-                                id: format!("text_{}", js_sys::Date::now() as u64),
-                                session_id: session_id.clone(),
-                                timestamp: js_sys::Date::new_0()
-                                    .to_iso_string()
-                                    .as_string()
-                                    .unwrap_or_default(),
-                                provider,
-                                kind: "text".to_string(),
-                                role: Some("assistant".to_string()),
-                                content: Some(stream),
-                                tool_name: None,
-                                tool_input: None,
-                                tool_id: None,
-                                is_error: None,
-                                request_id: None,
-                                input: None,
-                                context: None,
-                                new_session_id: None,
-                                exit_code: None,
-                                aborted: None,
-                                images: None,
-                            };
-                            ctx.messages.update(|msgs| msgs.push(text_msg));
-                            ctx.stream_content.set(String::new());
-                        }
 
                         let msg = NormalizedMessage {
                             id: format!("thinking_{}", js_sys::Date::now() as u64),
