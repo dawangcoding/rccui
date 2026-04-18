@@ -167,6 +167,45 @@ pub struct ImageData {
     pub mime_type: String,
 }
 
+// ─── Fetch History Result ─────────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FetchHistoryResult {
+    pub messages: Vec<NormalizedMessage>,
+    pub total: usize,
+    pub has_more: bool,
+    pub offset: u32,
+    pub limit: Option<u32>,
+    #[serde(default)]
+    pub token_usage: Option<Value>,
+}
+
+// ─── Permission Request (frontend state) ─────────────────────────────────────
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PermissionRequest {
+    pub request_id: String,
+    pub session_id: String,
+    pub tool_name: String,
+    #[serde(default)]
+    pub tool_input: Option<Value>,
+}
+
+// ─── Token Usage ─────────────────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TokenUsage {
+    pub used: u64,
+    pub total: u64,
+    #[serde(default)]
+    pub unsupported: Option<bool>,
+    #[serde(default)]
+    pub breakdown: Option<Value>,
+}
+
 // ─── Shell ───────────────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

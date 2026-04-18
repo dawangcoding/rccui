@@ -1,6 +1,8 @@
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 use leptos_fluent::tr;
+use leptos_router::hooks::use_navigate;
+use leptos_router::NavigateOptions;
 
 use icons::Search;
 
@@ -143,6 +145,9 @@ fn ProjectItem(project: Project) -> impl IntoView {
     let name_for_click = name.clone();
     let _project_for_select = project.clone();
 
+    // Navigation hook — captured once in the component scope
+    let navigate = use_navigate();
+
     view! {
         <li class="relative">
             <Collapsible open=is_expanded>
@@ -159,9 +164,12 @@ fn ProjectItem(project: Project) -> impl IntoView {
                         }
                         on:click={
                             let name = name_for_click.clone();
+                            let navigate = navigate.clone();
                             move |_| {
                                 ctx.select_project_by_name(&name);
                                 session_ctx.load_sessions(name.clone());
+                                // Navigate to the project page
+                                navigate(&format!("/project/{}", name), NavigateOptions::default());
                             }
                         }
                     >
@@ -216,6 +224,9 @@ fn SessionList(project_name: String, sessions: Vec<SessionInfo>) -> impl IntoVie
     // Capture toaster in reactive context (safe here, may not be inside spawn_local)
     let toaster = expect_toaster();
 
+    // Navigation hook — captured once in the component scope
+    let navigate = use_navigate();
+
     // Rename dialog state
     let renaming_session_id = RwSignal::new(Option::<String>::None);
     let rename_value = RwSignal::new(String::new());
@@ -247,8 +258,14 @@ fn SessionList(project_name: String, sessions: Vec<SessionInfo>) -> impl IntoVie
 
                 let on_click = {
                     let session = session_clone.clone();
+                    let project_name = project_name.clone();
+                    let navigate = navigate.clone();
                     Callback::new(move |_: ()| {
+                        // Select the project if not already selected
+                        ctx.select_project_by_name(&project_name);
                         ctx.selected_session.set(Some(session.clone()));
+                        // Navigate to the project page
+                        navigate(&format!("/project/{}", project_name), NavigateOptions::default());
                     })
                 };
 

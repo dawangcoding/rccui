@@ -176,6 +176,63 @@ pub async fn chat_execute(command: Value) -> Result<Value, String> {
     call("chat_execute", &Args { command }).await
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct GetSessionMessagesArgs {
+    session_id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    provider: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    project_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    project_path: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    limit: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    offset: Option<u32>,
+}
+
+pub async fn get_session_messages(
+    session_id: &str,
+    provider: Option<&str>,
+    project_name: Option<&str>,
+    project_path: Option<&str>,
+    limit: Option<u32>,
+    offset: Option<u32>,
+) -> Result<FetchHistoryResult, String> {
+    let args = GetSessionMessagesArgs {
+        session_id: session_id.to_string(),
+        provider: provider.map(|s| s.to_string()),
+        project_name: project_name.map(|s| s.to_string()),
+        project_path: project_path.map(|s| s.to_string()),
+        limit,
+        offset,
+    };
+    call("get_session_messages", &args).await
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct GetSessionTokenUsageArgs {
+    project_name: String,
+    session_id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    provider: Option<String>,
+}
+
+pub async fn get_session_token_usage(
+    project_name: &str,
+    session_id: &str,
+    provider: Option<&str>,
+) -> Result<TokenUsage, String> {
+    let args = GetSessionTokenUsageArgs {
+        project_name: project_name.to_string(),
+        session_id: session_id.to_string(),
+        provider: provider.map(|s| s.to_string()),
+    };
+    call("get_session_token_usage", &args).await
+}
+
 // ─── Shell Commands ──────────────────────────────────────────────────────────
 
 pub async fn shell_init(params: ShellInitParams) -> Result<ShellInitResult, String> {

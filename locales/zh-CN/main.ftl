@@ -58,6 +58,26 @@ project-shell-coming = 终端 - 第3阶段推出
 project-files-coming = 文件 - 第4阶段推出
 project-git-coming = Git - 第5阶段推出
 
+# ── 聊天 ──
+chat-input-placeholder = 输入消息...
+chat-enter-to-send = Enter 发送，Shift+Enter 换行
+chat-stop-btn = 停止生成
+chat-empty-state = 选择一个会话或发送消息开始新对话
+chat-empty-hint = 从侧边栏选择一个会话，或直接输入内容开始
+chat-thinking-indicator = 正在思考...
+chat-thinking = 思考过程
+chat-tool-result = 工具结果
+chat-tool-error = 工具错误
+chat-error-title = 错误
+chat-unknown-error = 未知错误
+chat-permission-title = 工具权限请求
+chat-permission-desc = 助手请求使用以下工具，是否允许？
+chat-permission-allow = 允许
+chat-permission-deny = 拒绝
+chat-perm-ask = 询问
+chat-perm-auto-accept = 自动允许
+chat-perm-auto-deny = 自动拒绝
+
 # ── 设置页 ──
 settings-title = 设置
 settings-language-title = 语言

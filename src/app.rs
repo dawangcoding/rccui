@@ -10,7 +10,7 @@ use crate::pages::onboarding::OnboardingPage;
 use crate::pages::project::ProjectPage;
 use crate::pages::settings::SettingsPage;
 use crate::hooks::use_theme_mode::ThemeMode;
-use crate::state::{AppContext, SessionContext};
+use crate::state::{AppContext, ChatContext, SessionContext};
 use crate::tauri::{commands, events};
 use crate::ui::toast_custom::toaster::{expect_toaster, provide_toaster, Toaster};
 
@@ -39,6 +39,10 @@ pub fn App() -> impl IntoView {
     // Create session context
     let session_ctx = SessionContext::new();
     provide_context(session_ctx);
+
+    // Create chat context
+    let chat_ctx = ChatContext::new();
+    provide_context(chat_ctx);
 
     // Load projects on mount
     spawn_local(async move {
@@ -84,6 +88,15 @@ pub fn App() -> impl IntoView {
         .await;
         // Keep the unlisten handle alive for the lifetime of the app
         // by leaking it (it should never be dropped)
+        std::mem::forget(_unlisten);
+    });
+
+    // Listen for chat_response events (streaming chat output)
+    spawn_local(async move {
+        let _unlisten = events::listen_chat_response(move |response| {
+            chat_ctx.handle_chat_response(response);
+        })
+        .await;
         std::mem::forget(_unlisten);
     });
 

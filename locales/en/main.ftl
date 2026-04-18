@@ -58,6 +58,26 @@ project-shell-coming = Shell - Coming in Phase 3
 project-files-coming = Files - Coming in Phase 4
 project-git-coming = Git - Coming in Phase 5
 
+# ── Chat ──
+chat-input-placeholder = Type a message...
+chat-enter-to-send = Enter to send, Shift+Enter for newline
+chat-stop-btn = Stop generating
+chat-empty-state = Select a session or send a message to start
+chat-empty-hint = Choose a session from the sidebar, or type to begin
+chat-thinking-indicator = Thinking...
+chat-thinking = Thinking
+chat-tool-result = Tool result
+chat-tool-error = Tool error
+chat-error-title = Error
+chat-unknown-error = Unknown error
+chat-permission-title = Tool Permission Request
+chat-permission-desc = The assistant wants to use the following tool. Allow?
+chat-permission-allow = Allow
+chat-permission-deny = Deny
+chat-perm-ask = Ask
+chat-perm-auto-accept = Auto-allow
+chat-perm-auto-deny = Auto-deny
+
 # ── Settings Page ──
 settings-title = Settings
 settings-language-title = Language

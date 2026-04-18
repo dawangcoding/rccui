@@ -13,9 +13,9 @@ pub fn AppLayout() -> impl IntoView {
     view! {
         <SidenavWrapper class="h-screen overflow-hidden" attr:style="--sidenav-width:16rem;">
             <Sidebar />
-            <SidenavInset>
+            <SidenavInset class="min-w-0">
                 <MainHeader />
-                <main class="flex-1 overflow-hidden">
+                <main class="flex-1 min-w-0 overflow-hidden">
                     <Outlet />
                 </main>
             </SidenavInset>

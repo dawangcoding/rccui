@@ -252,6 +252,7 @@ pub async fn some_command(
 | `icons` 0.18.2 | Lucide-style icon components |
 | `strum` 0.26 (derive) | Enum string conversion |
 | `web-sys` 0.3 | DOM API bindings (40+ features enabled) |
+| `leptos-fluent` 0.3 (nightly) | i18n (Fluent-based, tr! macro) |
 | `validator` | Form validation |
 
 ### Backend (src-tauri/)
@@ -475,3 +476,133 @@ view! {
 ```
 
 在嵌套闭包链中（`move || { .map(|x| { on:click={ move |_| { spawn_local(async move { }) } } }) }`），每一层 move 都需要一次 clone。
+
+## 国际化 (i18n) — leptos-fluent
+
+项目使用 `leptos-fluent 0.3` 实现中英文国际化，基于 Mozilla Fluent `.ftl` 翻译文件。
+
+### 架构概览
+
+```
+locales/
+├── zh-CN/main.ftl          # 中文翻译（默认语言）
+└── en/main.ftl              # 英文翻译
+
+src/app.rs                   # leptos_fluent! 宏初始化（必须在其他 context provider 之前）
+src/pages/settings.rs        # 语言切换器 UI
+```
+
+### 初始化
+
+`leptos_fluent!` 宏必须在 `App` 组件中**最先调用**（在 `ThemeMode::init` 等其他 context 之前），因为它创建 `I18n` context：
+
+```rust
+use leptos_fluent::leptos_fluent;
+
+leptos_fluent! {
+    locales: "./locales",
+    default_language: "zh-CN",
+    set_language_to_local_storage: true,
+    initial_language_from_local_storage: true,
+    local_storage_key: "lang",
+    sync_html_tag_lang: true,
+};
+```
+
+### tr! 宏的关键限制
+
+**`tr!` 宏只接受字符串字面量作为 key，不接受变量或表达式。**
+
+```rust
+// 错误 — 编译失败
+let key = "tab-chat";
+tr!(key)
+
+// 错误 — 编译失败
+tr!(tab.label_key())
+
+// 正确 — 使用 match + 字面量
+match tab {
+    AppTab::Chat => tr!("tab-chat"),
+    AppTab::Shell => tr!("tab-shell"),
+    AppTab::Files => tr!("tab-files"),
+    AppTab::Git => tr!("tab-git"),
+}
+```
+
+带参数的翻译同理，key 必须是字面量：
+
+```rust
+// .ftl 文件: time-minutes = { $value }分钟前
+tr!("time-minutes", { "value" => minutes_count })
+```
+
+### spawn_local 中使用 tr!
+
+`tr!()` 内部调用 `expect_context::<I18n>()`，在 `spawn_local` 的 async 块中可能 panic。必须在 async 块外预捕获翻译字符串：
+
+```rust
+// 在同步上下文中预捕获
+let msg_success = tr!("toast-session-deleted");
+let msg_error = tr!("toast-delete-failed");
+
+spawn_local(async move {
+    match delete_session(id).await {
+        Ok(_) => toaster.success(msg_success),
+        Err(e) => toaster.error(msg_error),
+    }
+});
+```
+
+### 原生 HTML 属性不用 attr: 前缀
+
+Leptos `view!` 宏中，原生 HTML 元素的原生属性（`placeholder`、`title` 等）直接写，不加 `attr:` 前缀。`attr:` 仅用于自定义属性或 Leptos 组件的属性透传：
+
+```rust
+// 错误 — 编译失败
+<input attr:placeholder={move || tr!("search-placeholder")} />
+<button attr:title={move || tr!("tooltip-text")} />
+
+// 正确
+<input placeholder={move || tr!("search-placeholder")} />
+<button title={move || tr!("tooltip-text")} />
+```
+
+### 获取 I18n context
+
+`leptos_fluent` 没有 `expect_i18n` 函数，直接使用 Leptos 的 `expect_context`：
+
+```rust
+let i18n = expect_context::<leptos_fluent::I18n>();
+
+// 获取可用语言列表
+for lang in i18n.languages {
+    // lang.name — 原生语言名（如 "中文（简体）"、"English"）
+    // lang.id — 语言标识符（如 "zh-CN"、"en"）
+}
+
+// 切换语言
+i18n.language.set(target_lang);
+```
+
+### 添加新翻译 key 的步骤
+
+1. 在 `locales/zh-CN/main.ftl` 和 `locales/en/main.ftl` 中同时添加 key
+2. 在 Rust 代码中使用 `tr!("new-key")` 或带参数的 `tr!("new-key", { "param" => value })`
+3. `cargo check` 验证编译
+
+### Fluent .ftl 语法要点
+
+```ftl
+# 简单文本
+sidebar-projects = 项目
+
+# 带参数（参数名用 $）
+time-minutes = { $value }分钟前
+dashboard-projects-found = 发现 { $count } 个项目
+
+# 多行文本用缩进
+long-text =
+    这是第一行
+    这是第二行
+```

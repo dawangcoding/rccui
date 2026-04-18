@@ -11,6 +11,7 @@
 | UI 组件 | rust/ui | shadcn-ui 风格，85+ 组件 + 26 hooks |
 | 样式 | Tailwind CSS v4 | OKLCH 主题变量，支持 light/dark 双主题 |
 | 数据库 | SQLite (sqlx) | 本地持久化 |
+| 国际化 | leptos-fluent 0.3 | 基于 Fluent 的中英文切换，localStorage 持久化 |
 | 语言 | Rust (edition 2024, nightly) | 前后端统一 |
 
 ## 核心功能
@@ -21,6 +22,7 @@
 - **API 密钥管理**: 多 Provider 凭据存储与管理
 - **MCP 服务器管理**: Model Context Protocol 服务器配置
 - **会话持久化**: 会话历史记录与命名
+- **中英文切换**: 界面支持中文/英文双语，Settings 页面切换，默认中文
 
 ## 快速开始
 
