@@ -100,6 +100,12 @@ src-tauri/src/                      # Backend (Tauri)
 └── migrations/                     # SQLite migration scripts
 
 public/                             # Static assets + JS dependencies
+├── app/                            # xterm.js bundle + CSS
+│   ├── xterm.bundle.js             # esbuild IIFE output (from scripts/xterm_entry.js)
+│   └── xterm.css                   # xterm.js stylesheet
+├── hooks/                          # JS hooks for some UI components
+scripts/                            # Build scripts
+├── xterm_entry.js                  # xterm.js esbuild entry (imports @xterm/xterm + addons)
 styles.css                          # Tailwind entry (source of truth for theme)
 index.html                          # Trunk entry
 docs/dev/                           # Development plans
@@ -297,6 +303,90 @@ Frontend listens to `chat_response` Tauri events via `ChatContext` (`src/state/c
 **tool_result JSON extraction**: Backend sends `tool_result` as `Option<serde_json::Value>` in the form `{"content": "...", "isError": false}`. The frontend must extract the `content` field (not serialize the whole object), matching the history adapter's behavior in `providers/claude/adapter.rs`.
 
 **Collapsible auto-expand**: During streaming, `MessageList` computes the last collapsible message index and passes `auto_expand=true` to that `MessageItem`. When streaming ends, all collapsibles default to collapsed.
+
+### Shell/Terminal Architecture (xterm.js + PTY)
+
+Terminal functionality uses xterm.js for ANSI rendering in the browser/webview, connected to backend PTY sessions via Tauri commands and events.
+
+#### xterm.js Build Pipeline
+
+```
+scripts/xterm_entry.js              # Entry: imports @xterm/xterm + addon-fit + addon-web-links
+    ↓ npx esbuild --bundle --format=iife --minify
+public/app/xterm.bundle.js          # ~342KB IIFE, sets window.XtermBridge
+public/app/xterm.css                # Copied from node_modules/@xterm/xterm/css/xterm.css
+    ↓ index.html
+<link rel="stylesheet" href="public/app/xterm.css" />   # Regular link (not data-trunk)
+<script src="public/app/xterm.bundle.js"></script>        # Regular script tag in <body>
+    ↓ Trunk copy-dir
+dist/public/app/xterm.bundle.js     # Available at runtime
+```
+
+To rebuild after modifying `scripts/xterm_entry.js`:
+```bash
+npx esbuild scripts/xterm_entry.js --bundle --format=iife --minify --outfile=public/app/xterm.bundle.js
+```
+
+#### JS Interop Pattern (wasm_bindgen ↔ XtermBridge)
+
+`window.XtermBridge` exposes: `create`, `write`, `onData`, `onResize`, `fit`, `focus`, `dispose`, `has`, `getDimensions`, `updateTheme`, `clear`.
+
+Frontend binds via `wasm_bindgen`:
+
+```rust
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(js_namespace = ["window", "XtermBridge"])]
+    fn create(id: &str, container: &web_sys::HtmlElement, opts: &JsValue) -> bool;
+
+    #[wasm_bindgen(js_namespace = ["window", "XtermBridge"])]
+    fn onData(id: &str, callback: &Closure<dyn FnMut(String)>);
+    // ... etc
+}
+```
+
+**Closure leaking pattern**: `onData` and `onResize` callbacks are `Closure<dyn FnMut(...)>` that must be leaked via `std::mem::forget()` to keep them alive for the component lifetime. Same pattern used for event listeners in `app.rs`.
+
+#### Dual-ID Design (session_key vs terminal_id)
+
+Two different IDs are used for different purposes:
+
+| ID | Source | Example | Used For |
+|----|--------|---------|----------|
+| `session_key` | Backend (hash of project_path + session_id + command) | `"a1b2c3d4..."` | Tauri commands (`shell_input`, `shell_resize`, `shell_detach`), event matching |
+| `terminal_id` | Frontend (`"term_{project.name}"`) | `"term_myapp"` | xterm.js instance lookup (`XtermBridge.write`, `XtermBridge.fit`, etc.) |
+
+Both are stored in `ShellContext` as `RwSignal<Option<String>>`. When handling `shell_output` events, match by `session_key` but write to xterm by `terminal_id`.
+
+#### Event Payload Naming Convention
+
+**Critical**: Backend event payload structs (in `src-tauri/src/commands/shell.rs`) use **default serde serialization (snake_case)**. Frontend event payload types MUST NOT use `#[serde(rename_all = "camelCase")]` for these types:
+
+```rust
+// Backend emits: {"session_key": "abc", "data": "..."}
+// Frontend MUST match with snake_case fields:
+#[derive(Deserialize)]
+pub struct ShellOutputPayload {     // NO rename_all = "camelCase" here!
+    pub session_key: String,
+    pub data: String,
+}
+```
+
+This is different from Tauri **command parameters** which default to camelCase matching. The `ShellInputArgs` etc. correctly use `#[serde(rename_all = "camelCase")]` because Tauri 2 commands expect camelCase parameter names.
+
+#### ShellContext Lifecycle
+
+```
+1. User selects project → ShellPanel renders ShellTerminal
+2. Effect creates xterm instance: XtermBridge.create(terminal_id, container)
+3. Registers onData callback → shell_ctx.send_input(data) → commands::shell_input
+4. Registers onResize callback → shell_ctx.resize(cols, rows) → commands::shell_resize
+5. Calls shell_ctx.init_session() → commands::shell_init → returns session_key + buffer
+6. Replay buffer written to xterm, status set to "connected"
+7. Backend reader task emits shell_output events → handle_output → XtermBridge.write
+8. User switches away → on_cleanup: detach + dispose
+9. User switches project → shell_ctx.clear(): detach + dispose + reset all signals
+```
 
 ### Flexbox Overflow Prevention
 

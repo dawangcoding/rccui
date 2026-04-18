@@ -18,7 +18,7 @@
 
 - **多 Provider 实时聊天**: 通过 CLI spawner 与 Claude/Cursor/Codex/Gemini 实时交互，支持流式文本输出、思考过程展示、工具调用/结果渲染、权限确认对话
 - **会话管理**: 会话历史记录持久化与命名，点击会话条目即可加载完整历史消息
-- **终端会话管理**: PTY 终端创建、输入、调整大小、分离/重连，带 5000 行回放缓冲
+- **交互式终端**: 基于 xterm.js + PTY 的全功能终端，支持 ANSI 渲染、分离/重连、5000 行回放缓冲、OAuth URL 检测
 - **项目文件监控**: 监听 Provider 目录变更 (`~/.claude/.cursor/.codex/.gemini`)，自动刷新项目列表
 - **API 密钥管理**: 多 Provider 凭据存储与管理
 - **MCP 服务器管理**: Model Context Protocol 服务器配置
@@ -65,7 +65,7 @@ src/                            # 前端 (Leptos WASM)
 ├── hooks/                      # 自定义 hooks (26 个)
 ├── features/                   # 功能模块
 │   ├── chat/                   # 聊天功能 (面板、消息列表、消息项、输入框、权限对话、Provider 选择)
-│   ├── shell/                  # 终端功能 (面板、xterm.js 集成)
+│   ├── shell/                  # 终端功能 (xterm.js 集成、PTY 会话管理)
 │   ├── files/                  # 文件浏览
 │   ├── git/                    # Git 操作
 │   ├── onboarding/             # 引导流程
@@ -107,8 +107,12 @@ src-tauri/src/                  # 后端 (Tauri)
     └── gemini/                 # Gemini 适配
 
 public/                         # 静态资源
+├── app/                        # JS 依赖 (xterm.bundle.js, xterm.css)
+├── hooks/                      # JS hooks 依赖
+scripts/                        # 构建脚本
+├── xterm_entry.js              # xterm.js esbuild 入口
 styles.css                      # Tailwind 入口文件 (主题变量源)
-index.html                      # HTML 模板
+index.html                      # HTML 模板 (Trunk 入口)
 docs/dev/                       # 开发文档
 ```
 
@@ -150,6 +154,24 @@ docs/dev/                       # 开发文档
 1. **文本累积**: `stream_delta` 事件将文本追加到 `stream_content` 信号
 2. **内容刷新**: 在结构化事件 (thinking/tool_use/tool_result/permission_request/error/complete) 之前，通过 `flush_stream_content()` 将累积文本刷新为独立消息
 3. **消息渲染**: `MessageItem` 组件根据消息 `kind` 渲染不同 UI (文本/思考过程/工具调用/工具结果)，可折叠区域在流式过程中自动展开当前步骤
+
+### 终端集成
+
+前端通过 xterm.js (esbuild 打包为 IIFE) 渲染终端，通过 `wasm_bindgen` JS interop 与 `window.XtermBridge` 通信：
+
+```
+xterm.js (@xterm/xterm + addon-fit + addon-web-links)
+    ↓ esbuild (scripts/xterm_entry.js → public/app/xterm.bundle.js)
+window.XtermBridge (create/write/onData/onResize/fit/dispose)
+    ↓ wasm_bindgen extern "C" (js_namespace = ["window", "XtermBridge"])
+terminal.rs (ShellTerminal 组件)
+    ↓ ShellContext (session_key + terminal_id 双 ID)
+Tauri Commands (shell_init/shell_input/shell_resize/shell_detach)
+```
+
+- **双 ID 设计**: 后端 `session_key` (项目路径+会话+命令的哈希) 用于 Tauri 命令寻址；前端 `terminal_id` (`term_{project_name}`) 用于 xterm.js 实例寻址
+- **事件监听**: `shell_output` / `shell_auth_url` 事件在 `app.rs` 根组件通过 `std::mem::forget` 模式保持 Closure 存活
+- **xterm.js 主题**: 从 CSS 自定义属性自动读取，跟随 light/dark 模式切换
 
 ## 开发指南
 
