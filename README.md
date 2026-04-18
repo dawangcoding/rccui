@@ -16,12 +16,12 @@
 
 ## 核心功能
 
-- **多 Provider 聊天**: 通过 CLI spawner 与 Claude/Cursor/Codex/Gemini 实时交互，流式输出
+- **多 Provider 实时聊天**: 通过 CLI spawner 与 Claude/Cursor/Codex/Gemini 实时交互，支持流式文本输出、思考过程展示、工具调用/结果渲染、权限确认对话
+- **会话管理**: 会话历史记录持久化与命名，点击会话条目即可加载完整历史消息
 - **终端会话管理**: PTY 终端创建、输入、调整大小、分离/重连，带 5000 行回放缓冲
-- **项目文件监控**: 监听 Provider 目录变更，自动刷新项目列表
+- **项目文件监控**: 监听 Provider 目录变更 (`~/.claude/.cursor/.codex/.gemini`)，自动刷新项目列表
 - **API 密钥管理**: 多 Provider 凭据存储与管理
 - **MCP 服务器管理**: Model Context Protocol 服务器配置
-- **会话持久化**: 会话历史记录与命名
 - **中英文切换**: 界面支持中文/英文双语，Settings 页面切换，默认中文
 
 ## 快速开始
@@ -60,9 +60,24 @@ cargo clippy         # Lint 检查
 ```
 src/                            # 前端 (Leptos WASM)
 ├── main.rs                     # 应用入口
-├── app.rs                      # 根组件
+├── app.rs                      # 根组件 (Router + Context Providers)
 ├── ui/                         # rust/ui 组件库 (85+ 组件)
 ├── hooks/                      # 自定义 hooks (26 个)
+├── features/                   # 功能模块
+│   ├── chat/                   # 聊天功能 (面板、消息列表、消息项、输入框、权限对话、Provider 选择)
+│   ├── shell/                  # 终端功能 (面板、xterm.js 集成)
+│   ├── files/                  # 文件浏览
+│   ├── git/                    # Git 操作
+│   ├── onboarding/             # 引导流程
+│   └── settings/               # 设置
+├── state/                      # 响应式状态管理
+│   ├── app_state.rs            # 全局状态 (项目、会话、侧边栏)
+│   ├── chat_state.rs           # 聊天状态 (消息、流式处理、事件分发)
+│   ├── session_state.rs        # 会话状态
+│   └── shell_state.rs          # 终端状态
+├── layout/                     # 布局组件 (应用布局、头部、侧边栏)
+├── pages/                      # 路由页面 (仪表盘、项目详情、设置、引导)
+├── tauri/                      # Tauri 桥接 (命令调用、事件监听、类型定义)
 ├── utils/                      # 工具函数
 └── constants/                  # 常量定义
 
@@ -72,25 +87,19 @@ src-tauri/src/                  # 后端 (Tauri)
 ├── error.rs                    # 统一错误类型
 ├── state.rs                    # AppState, ActiveSession, PtySession
 ├── db/                         # 数据库层 (SQLite)
-│   ├── api_keys.rs
-│   ├── credentials.rs
-│   ├── session_names.rs
-│   └── users.rs
 ├── commands/                   # Tauri 命令 (对外接口)
-│   ├── api_keys.rs             # API 密钥管理
-│   ├── chat.rs                 # 聊天命令入口
-│   ├── commands_handler.rs     # 命令执行处理
-│   ├── mcp.rs                  # MCP 服务器管理
+│   ├── chat.rs                 # 聊天命令入口 (ChatCommand 分发)
+│   ├── shell.rs                # 终端命令 (init/input/resize/detach)
 │   ├── projects.rs             # 项目管理
 │   ├── sessions.rs             # 会话管理
 │   ├── settings.rs             # 设置管理
-│   └── shell.rs                # 终端命令 (init/input/resize/detach)
+│   ├── mcp.rs                  # MCP 服务器管理
+│   └── git.rs                  # Git 操作
 ├── services/                   # 业务服务层
 │   ├── chat.rs                 # CLI spawners (Claude/Cursor/Codex/Gemini)
 │   ├── file_watcher.rs         # 文件变更监听
 │   ├── project_scanner.rs      # 项目扫描
-│   ├── pty_manager.rs          # PTY 管理
-│   └── sessions.rs             # 会话服务
+│   └── pty_manager.rs          # PTY 管理
 └── providers/                  # Provider 适配器
     ├── claude/                 # Claude SDK 协议 (control_request/response)
     ├── cursor/                 # Cursor 适配
@@ -98,7 +107,7 @@ src-tauri/src/                  # 后端 (Tauri)
     └── gemini/                 # Gemini 适配
 
 public/                         # 静态资源
-styles.css                      # Tailwind 入口文件
+styles.css                      # Tailwind 入口文件 (主题变量源)
 index.html                      # HTML 模板
 docs/dev/                       # 开发文档
 ```
@@ -129,10 +138,18 @@ docs/dev/                       # 开发文档
 
 | 事件 | 来源 | 用途 |
 |---|---|---|
-| `chat_response` | `services/chat.rs` | 聊天流式输出 |
+| `chat_response` | `services/chat.rs` | 聊天流式输出 (text/thinking/tool_use/tool_result/permission/complete/error) |
 | `shell_output` | `commands/shell.rs` | 终端 stdout 数据 |
 | `shell_auth_url` | `commands/shell.rs` | OAuth URL 检测 |
 | `projects_updated` | `services/file_watcher.rs` | 项目文件变更通知 |
+
+### 聊天流式处理
+
+`chat_response` 事件通过 `kind` 字段分发到不同处理器，前端 `ChatContext` (`src/state/chat_state.rs`) 负责：
+
+1. **文本累积**: `stream_delta` 事件将文本追加到 `stream_content` 信号
+2. **内容刷新**: 在结构化事件 (thinking/tool_use/tool_result/permission_request/error/complete) 之前，通过 `flush_stream_content()` 将累积文本刷新为独立消息
+3. **消息渲染**: `MessageItem` 组件根据消息 `kind` 渲染不同 UI (文本/思考过程/工具调用/工具结果)，可折叠区域在流式过程中自动展开当前步骤
 
 ## 开发指南
 
