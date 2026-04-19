@@ -21,6 +21,10 @@ pub fn BranchesTab() -> impl IntoView {
     // Create branch dialog state
     let create_open = RwSignal::new(false);
     let new_branch_name = RwSignal::new(String::new());
+
+    // Delete branch confirmation dialog state
+    let delete_open = RwSignal::new(false);
+    let delete_branch_name = RwSignal::new(String::new());
     let branch_input_ref = NodeRef::<leptos::html::Input>::new();
 
     // Disable autocapitalize on branch name input (Tauri WKWebView may auto-capitalize first letter)
@@ -230,7 +234,6 @@ pub fn BranchesTab() -> impl IntoView {
                                         let branch_delete = branch.clone();
                                         let branch_display = branch.clone();
                                         let toaster_co = toaster.get_value();
-                                        let toaster_del = toaster.get_value();
                                         view! {
                                             <div class={format!(
                                                 "flex items-center gap-2 px-4 py-1.5 text-sm hover:bg-accent/50 transition-colors group {}",
@@ -280,25 +283,8 @@ pub fn BranchesTab() -> impl IntoView {
                                                                 size=ButtonSize::Icon
                                                                 class="size-6 text-destructive hover:text-destructive"
                                                                 on:click=move |_| {
-                                                                    let project = ctx.selected_project.get_untracked();
-                                                                    let toaster = toaster_del.clone();
-                                                                    if let Some(project) = project {
-                                                                        let project_name = project.name.clone();
-                                                                        let project_name2 = project.name.clone();
-                                                                        let branch = branch_delete.clone();
-                                                                        let branch_msg = branch.clone();
-                                                                        let msg_deleted = tr!("toast-git-branch-deleted", { "branch" => branch_msg });
-                                                                        let msg_error = tr!("toast-git-error");
-                                                                        spawn_local(async move {
-                                                                            match commands::git_delete_branch(&project_name, &branch).await {
-                                                                                Ok(_) => {
-                                                                                    toaster.success(msg_deleted);
-                                                                                    git_ctx.load_branches(project_name2);
-                                                                                }
-                                                                                Err(e) => toaster.error(format!("{msg_error}: {e}")),
-                                                                            }
-                                                                        });
-                                                                    }
+                                                                    delete_branch_name.set(branch_delete.clone());
+                                                                    delete_open.set(true);
                                                                 }
                                                             >
                                                                 <icons::Trash2 class="size-3" />
@@ -350,6 +336,49 @@ pub fn BranchesTab() -> impl IntoView {
                         </Button>
                         <Button on:click=on_create_confirm>
                             {tr!("git-create-branch")}
+                        </Button>
+                    </div>
+                </div>
+            </Show>
+
+            // Delete Branch Confirmation Modal
+            <Show when=move || delete_open.get()>
+                <div class="fixed inset-0 z-50 bg-black/50" on:click=move |_| delete_open.set(false) />
+                <div class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 bg-background border rounded-2xl shadow-lg p-6 w-full max-w-md">
+                    <h3 class="text-lg leading-none font-semibold mb-4">{tr!("git-delete-branch-title")}</h3>
+                    <p class="text-sm text-muted-foreground">
+                        {move || tr!("git-delete-branch-confirm", { "branch" => delete_branch_name.get() })}
+                    </p>
+                    <div class="flex flex-row gap-2 justify-end mt-4">
+                        <Button variant=ButtonVariant::Outline on:click=move |_| delete_open.set(false)>
+                            {tr!("action-cancel")}
+                        </Button>
+                        <Button
+                            variant=ButtonVariant::Destructive
+                            on:click=move |_| {
+                                let branch = delete_branch_name.get_untracked();
+                                let project = ctx.selected_project.get_untracked();
+                                let toaster = toaster.get_value();
+                                if let Some(project) = project {
+                                    let project_name = project.name.clone();
+                                    let project_name2 = project.name.clone();
+                                    let branch_msg = branch.clone();
+                                    let msg_deleted = tr!("toast-git-branch-deleted", { "branch" => branch_msg });
+                                    let msg_error = tr!("toast-git-error");
+                                    spawn_local(async move {
+                                        match commands::git_delete_branch(&project_name, &branch).await {
+                                            Ok(_) => {
+                                                toaster.success(msg_deleted);
+                                                git_ctx.load_branches(project_name2);
+                                            }
+                                            Err(e) => toaster.error(format!("{msg_error}: {e}")),
+                                        }
+                                    });
+                                }
+                                delete_open.set(false);
+                            }
+                        >
+                            {tr!("action-delete")}
                         </Button>
                     </div>
                 </div>
