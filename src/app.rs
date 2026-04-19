@@ -10,7 +10,7 @@ use crate::pages::onboarding::OnboardingPage;
 use crate::pages::project::ProjectPage;
 use crate::pages::settings::SettingsPage;
 use crate::hooks::use_theme_mode::ThemeMode;
-use crate::state::{AppContext, ChatContext, SessionContext, ShellContext};
+use crate::state::{AppContext, ChatContext, FileContext, SessionContext, ShellContext};
 use crate::tauri::{commands, events};
 use crate::ui::toast_custom::toaster::{expect_toaster, provide_toaster, Toaster};
 
@@ -47,6 +47,10 @@ pub fn App() -> impl IntoView {
     // Create shell context
     let shell_ctx = ShellContext::new();
     provide_context(shell_ctx);
+
+    // Create file context
+    let file_ctx = FileContext::new();
+    provide_context(file_ctx);
 
     // Load projects on mount
     spawn_local(async move {

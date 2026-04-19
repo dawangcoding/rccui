@@ -296,3 +296,205 @@ pub async fn shell_detach(session_key: &str) -> Result<Value, String> {
     )
     .await
 }
+
+// ─── File Commands ───────────────────────────────────────────────────────────
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ListFilesArgs {
+    project_name: String,
+}
+
+pub async fn list_files(project_name: &str) -> Result<Vec<FileNode>, String> {
+    let args = ListFilesArgs {
+        project_name: project_name.to_string(),
+    };
+    let val: Value = call("list_files", &args).await?;
+    let nodes: Vec<FileNode> = serde_json::from_value(val).map_err(|e| e.to_string())?;
+    Ok(nodes)
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ReadFileArgs {
+    project_name: String,
+    file_path: String,
+}
+
+pub async fn read_file(project_name: &str, file_path: &str) -> Result<ReadFileResponse, String> {
+    call(
+        "read_file",
+        &ReadFileArgs {
+            project_name: project_name.to_string(),
+            file_path: file_path.to_string(),
+        },
+    )
+    .await
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ReadFileContentArgs {
+    project_name: String,
+    path: String,
+}
+
+pub async fn read_file_content(
+    project_name: &str,
+    path: &str,
+) -> Result<ReadFileContentResponse, String> {
+    call(
+        "read_file_content",
+        &ReadFileContentArgs {
+            project_name: project_name.to_string(),
+            path: path.to_string(),
+        },
+    )
+    .await
+}
+
+#[derive(Serialize)]
+struct ReadRawFileArgs {
+    path: String,
+}
+
+pub async fn read_raw_file(path: &str) -> Result<ReadFileContentResponse, String> {
+    call(
+        "read_raw_file",
+        &ReadRawFileArgs {
+            path: path.to_string(),
+        },
+    )
+    .await
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct SaveFileArgs {
+    project_name: String,
+    body: SaveFileBody,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct SaveFileBody {
+    file_path: String,
+    content: String,
+}
+
+pub async fn save_file(
+    project_name: &str,
+    file_path: &str,
+    content: &str,
+) -> Result<FileOperationResponse, String> {
+    call(
+        "save_file",
+        &SaveFileArgs {
+            project_name: project_name.to_string(),
+            body: SaveFileBody {
+                file_path: file_path.to_string(),
+                content: content.to_string(),
+            },
+        },
+    )
+    .await
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct CreateFileArgs {
+    project_name: String,
+    body: CreateFileBody,
+}
+
+#[derive(Serialize)]
+struct CreateFileBody {
+    path: String,
+    #[serde(rename = "type")]
+    item_type: String,
+    name: String,
+}
+
+pub async fn create_file(
+    project_name: &str,
+    path: &str,
+    item_type: &str,
+    name: &str,
+) -> Result<FileOperationResponse, String> {
+    call(
+        "create_file",
+        &CreateFileArgs {
+            project_name: project_name.to_string(),
+            body: CreateFileBody {
+                path: path.to_string(),
+                item_type: item_type.to_string(),
+                name: name.to_string(),
+            },
+        },
+    )
+    .await
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct RenameFileArgs {
+    project_name: String,
+    body: RenameFileBody,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct RenameFileBody {
+    old_path: String,
+    new_name: String,
+}
+
+pub async fn rename_file(
+    project_name: &str,
+    old_path: &str,
+    new_name: &str,
+) -> Result<FileOperationResponse, String> {
+    call(
+        "rename_file",
+        &RenameFileArgs {
+            project_name: project_name.to_string(),
+            body: RenameFileBody {
+                old_path: old_path.to_string(),
+                new_name: new_name.to_string(),
+            },
+        },
+    )
+    .await
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct DeleteFileArgs {
+    project_name: String,
+    body: DeleteFileBody,
+}
+
+#[derive(Serialize)]
+struct DeleteFileBody {
+    path: String,
+    #[serde(rename = "type")]
+    item_type: String,
+}
+
+pub async fn delete_file(
+    project_name: &str,
+    path: &str,
+    item_type: &str,
+) -> Result<FileOperationResponse, String> {
+    call(
+        "delete_file",
+        &DeleteFileArgs {
+            project_name: project_name.to_string(),
+            body: DeleteFileBody {
+                path: path.to_string(),
+                item_type: item_type.to_string(),
+            },
+        },
+    )
+    .await
+}

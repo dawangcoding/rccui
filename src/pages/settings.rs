@@ -9,7 +9,7 @@ pub fn SettingsPage() -> impl IntoView {
     let i18n = expect_context::<leptos_fluent::I18n>();
 
     view! {
-        <div class="flex flex-col h-full overflow-auto p-8">
+        <div class="flex flex-col flex-1 min-h-0 overflow-auto p-8">
             <div class="max-w-2xl mx-auto w-full">
                 <h1 class="text-2xl font-bold tracking-tight mb-6">{move || tr!("settings-title")}</h1>
 

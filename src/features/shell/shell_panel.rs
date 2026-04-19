@@ -21,7 +21,7 @@ pub fn ShellPanel() -> impl IntoView {
     });
 
     view! {
-        <div class="flex flex-col h-full min-w-0 overflow-hidden">
+        <div class="flex flex-col flex-1 min-h-0 min-w-0 overflow-hidden">
             {move || {
                 let project = ctx.selected_project.get();
                 match project {

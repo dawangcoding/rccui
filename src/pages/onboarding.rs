@@ -5,7 +5,7 @@ use leptos_fluent::tr;
 #[component]
 pub fn OnboardingPage() -> impl IntoView {
     view! {
-        <div class="flex items-center justify-center h-full text-sm text-muted-foreground">
+        <div class="flex items-center justify-center flex-1 min-h-0 text-sm text-muted-foreground">
             {move || tr!("onboarding-coming")}
         </div>
     }

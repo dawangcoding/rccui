@@ -76,25 +76,48 @@ pub fn ShellTerminal() -> impl IntoView {
         let project = ctx.selected_project.get();
         let term_id = terminal_id.get();
 
+        web_sys::console::log_1(
+            &format!(
+                "[ShellTerminal] Effect: project={}, term_id={}, container={}, has={}",
+                project.as_ref().map(|p| p.name.as_str()).unwrap_or("None"),
+                term_id,
+                if container_ref.get().is_some() { "YES" } else { "NO" },
+                has(&term_id),
+            ).into(),
+        );
+
         if project.is_none() {
             return;
         }
         let project = project.unwrap();
 
         let Some(container) = container_ref.get() else {
+            web_sys::console::log_1(&"[ShellTerminal] container_ref is None, returning".into());
             return;
         };
 
+        // Log container dimensions
+        let rect = container.get_bounding_client_rect();
+        web_sys::console::log_1(
+            &format!(
+                "[ShellTerminal] container rect: {}x{} at ({},{})",
+                rect.width(), rect.height(), rect.x(), rect.y()
+            ).into(),
+        );
+
         // Don't re-init if already created
         if has(&term_id) {
+            web_sys::console::log_1(&format!("[ShellTerminal] already has {}, fit+focus", term_id).into());
             fit(&term_id);
             focus(&term_id);
             return;
         }
 
         // Create xterm instance
+        web_sys::console::log_1(&format!("[ShellTerminal] creating xterm: {}", term_id).into());
         let opts = js_sys::Object::new();
-        create(&term_id, &container, &JsValue::from(opts));
+        let created = create(&term_id, &container, &JsValue::from(opts));
+        web_sys::console::log_1(&format!("[ShellTerminal] create() returned: {}", created).into());
 
         // Set up onData callback — sends user input to PTY
         let shell_ctx_input = shell_ctx;
@@ -174,7 +197,7 @@ pub fn ShellTerminal() -> impl IntoView {
     let auth_url_sig = shell_ctx.auth_url;
 
     view! {
-        <div class="flex flex-col h-full min-w-0">
+        <div class="flex flex-col flex-1 min-h-0 min-w-0">
             // Status bar
             <div class="flex items-center justify-between px-3 py-1.5 border-b border-border bg-muted/30 text-xs text-muted-foreground shrink-0">
                 <div class="flex items-center gap-2">

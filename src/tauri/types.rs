@@ -267,6 +267,51 @@ pub struct OnboardingStatus {
     pub has_completed_onboarding: bool,
 }
 
+// ─── File Types ──────────────────────────────────────────────────────────
+
+/// A file or directory node in the project file tree.
+/// Matches the backend `build_file_tree` JSON output.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FileNode {
+    pub name: String,
+    pub path: String,
+    #[serde(rename = "type")]
+    pub file_type: String,
+    pub size: u64,
+    pub modified: String,
+    pub permissions_rwx: String,
+    #[serde(default)]
+    pub children: Option<Vec<FileNode>>,
+}
+
+/// Response from the `read_file` command (text files).
+#[derive(Debug, Clone, Deserialize)]
+pub struct ReadFileResponse {
+    pub content: String,
+    pub path: String,
+}
+
+/// Response from `read_file_content` / `read_raw_file` commands (binary/base64).
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReadFileContentResponse {
+    pub data: String,
+    pub mime_type: String,
+    pub size: u64,
+}
+
+/// Generic success response for file operations (create/rename/delete/save).
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FileOperationResponse {
+    pub success: bool,
+    #[serde(default)]
+    pub path: Option<String>,
+    #[serde(default)]
+    pub new_path: Option<String>,
+}
+
 // ─── App Tab ─────────────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -316,6 +361,6 @@ impl AppTab {
     }
 
     pub fn is_implemented(&self) -> bool {
-        matches!(self, AppTab::Chat | AppTab::Shell)
+        matches!(self, AppTab::Chat | AppTab::Shell | AppTab::Files)
     }
 }

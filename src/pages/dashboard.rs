@@ -23,7 +23,7 @@ pub fn DashboardPage() -> impl IntoView {
     };
 
     view! {
-        <div class="flex flex-col items-center justify-center h-full p-8 gap-10 relative overflow-hidden">
+        <div class="flex flex-col items-center justify-center flex-1 min-h-0 p-8 gap-10 relative overflow-hidden">
             // Decorative background glow orbs — Raycast Blue
             <div class="absolute inset-0 overflow-hidden pointer-events-none select-none" aria-hidden="true">
                 <div class="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full opacity-[0.04]"

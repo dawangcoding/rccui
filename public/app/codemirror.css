@@ -1,0 +1,27 @@
+/* CodeMirror container styles */
+.cm-editor {
+  height: 100%;
+  font-family: var(--font-mono, 'JetBrains Mono', 'Geist Mono', 'Cascadia Code', Menlo, monospace);
+}
+
+.cm-editor .cm-scroller {
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+.cm-editor .cm-scroller::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.cm-editor .cm-scroller::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb);
+  border-radius: 4px;
+}
+
+.cm-editor .cm-scroller::-webkit-scrollbar-track {
+  background-color: var(--scrollbar-track);
+}
+
+.cm-editor.cm-focused {
+  outline: none !important;
+}

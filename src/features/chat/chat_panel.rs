@@ -39,7 +39,7 @@ pub fn ChatPanel() -> impl IntoView {
     });
 
     view! {
-        <div class="flex flex-col h-full min-w-0">
+        <div class="flex flex-col flex-1 min-h-0 min-w-0">
             // Quick settings bar (provider selection)
             <QuickSettings />
 
