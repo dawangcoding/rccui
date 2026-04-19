@@ -39,6 +39,8 @@ pub fn ChangesTab() -> impl IntoView {
                 .map(|s| s.has_commits)
                 .unwrap_or(true);
             git_ctx.op_loading.set(true);
+            let msg_committed = tr!("toast-git-committed");
+            let msg_error = tr!("toast-git-error");
             spawn_local(async move {
                 let result = if has_commits {
                     commands::git_commit(&project_name, &msg, vec![]).await
@@ -47,12 +49,12 @@ pub fn ChangesTab() -> impl IntoView {
                 };
                 match result {
                     Ok(_) => {
-                        toaster.success(tr!("toast-git-committed"));
+                        toaster.success(msg_committed);
                         commit_message.set(String::new());
                         git_ctx.load_status(project_name2);
                     }
                     Err(e) => {
-                        toaster.error(format!("{}: {e}", tr!("toast-git-error")));
+                        toaster.error(format!("{msg_error}: {e}"));
                     }
                 }
                 git_ctx.op_loading.set(false);
@@ -73,11 +75,7 @@ pub fn ChangesTab() -> impl IntoView {
                     size=ButtonSize::Sm
                     on:click=on_commit
                     attr:disabled=move || {
-                        if commit_message.get().trim().is_empty() || git_ctx.op_loading.get() {
-                            Some(true)
-                        } else {
-                            None
-                        }
+                        commit_message.get().trim().is_empty() || git_ctx.op_loading.get()
                     }
                 >
                     {move || {

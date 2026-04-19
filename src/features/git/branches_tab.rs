@@ -21,6 +21,16 @@ pub fn BranchesTab() -> impl IntoView {
     // Create branch dialog state
     let create_open = RwSignal::new(false);
     let new_branch_name = RwSignal::new(String::new());
+    let branch_input_ref = NodeRef::<leptos::html::Input>::new();
+
+    // Disable autocapitalize on branch name input (Tauri WKWebView may auto-capitalize first letter)
+    Effect::new(move || {
+        if let Some(el) = branch_input_ref.get() {
+            let _ = el.set_attribute("autocapitalize", "off");
+            let _ = el.set_attribute("autocorrect", "off");
+            let _ = el.set_attribute("spellcheck", "false");
+        }
+    });
 
     // Get current branch from status
     let current_branch = move || {
@@ -39,13 +49,15 @@ pub fn BranchesTab() -> impl IntoView {
             let project_name = project.name.clone();
             let project_name2 = project.name.clone();
             git_ctx.op_loading.set(true);
+            let msg_fetched = tr!("toast-git-fetched");
+            let msg_error = tr!("toast-git-error");
             spawn_local(async move {
                 match commands::git_fetch(&project_name).await {
                     Ok(_) => {
-                        toaster.success(tr!("toast-git-fetched"));
+                        toaster.success(msg_fetched);
                         git_ctx.load_branches(project_name2);
                     }
-                    Err(e) => toaster.error(format!("{}: {e}", tr!("toast-git-error"))),
+                    Err(e) => toaster.error(format!("{msg_error}: {e}")),
                 }
                 git_ctx.op_loading.set(false);
             });
@@ -59,13 +71,15 @@ pub fn BranchesTab() -> impl IntoView {
             let project_name = project.name.clone();
             let project_name2 = project.name.clone();
             git_ctx.op_loading.set(true);
+            let msg_pulled = tr!("toast-git-pulled");
+            let msg_error = tr!("toast-git-error");
             spawn_local(async move {
                 match commands::git_pull(&project_name).await {
                     Ok(_) => {
-                        toaster.success(tr!("toast-git-pulled"));
+                        toaster.success(msg_pulled);
                         git_ctx.load_status(project_name2);
                     }
-                    Err(e) => toaster.error(format!("{}: {e}", tr!("toast-git-error"))),
+                    Err(e) => toaster.error(format!("{msg_error}: {e}")),
                 }
                 git_ctx.op_loading.set(false);
             });
@@ -78,10 +92,12 @@ pub fn BranchesTab() -> impl IntoView {
         if let Some(project) = project {
             let project_name = project.name.clone();
             git_ctx.op_loading.set(true);
+            let msg_pushed = tr!("toast-git-pushed");
+            let msg_error = tr!("toast-git-error");
             spawn_local(async move {
                 match commands::git_push(&project_name).await {
-                    Ok(_) => toaster.success(tr!("toast-git-pushed")),
-                    Err(e) => toaster.error(format!("{}: {e}", tr!("toast-git-error"))),
+                    Ok(_) => toaster.success(msg_pushed),
+                    Err(e) => toaster.error(format!("{msg_error}: {e}")),
                 }
                 git_ctx.op_loading.set(false);
             });
@@ -102,15 +118,16 @@ pub fn BranchesTab() -> impl IntoView {
             let project_name2 = project.name.clone();
             let branch_msg = name.clone();
             git_ctx.op_loading.set(true);
+            let msg_created = tr!("toast-git-branch-created", { "branch" => branch_msg });
+            let msg_error = tr!("toast-git-error");
             spawn_local(async move {
                 match commands::git_create_branch(&project_name, &name).await {
                     Ok(_) => {
-                        toaster
-                            .success(tr!("toast-git-branch-created", { "branch" => branch_msg }));
+                        toaster.success(msg_created);
                         git_ctx.load_branches(project_name2.clone());
                         git_ctx.load_status(project_name2);
                     }
-                    Err(e) => toaster.error(format!("{}: {e}", tr!("toast-git-error"))),
+                    Err(e) => toaster.error(format!("{msg_error}: {e}")),
                 }
                 git_ctx.op_loading.set(false);
             });
@@ -241,14 +258,16 @@ pub fn BranchesTab() -> impl IntoView {
                                                                         let project_name2 = project.name.clone();
                                                                         let branch = branch_checkout.clone();
                                                                         let branch_msg = branch.clone();
+                                                                        let msg_checked_out = tr!("toast-git-checked-out", { "branch" => branch_msg });
+                                                                        let msg_error = tr!("toast-git-error");
                                                                         spawn_local(async move {
                                                                             match commands::git_checkout(&project_name, &branch).await {
                                                                                 Ok(_) => {
-                                                                                    toaster.success(tr!("toast-git-checked-out", { "branch" => branch_msg }));
+                                                                                    toaster.success(msg_checked_out);
                                                                                     git_ctx.load_status(project_name2.clone());
                                                                                     git_ctx.load_branches(project_name2);
                                                                                 }
-                                                                                Err(e) => toaster.error(format!("{}: {e}", tr!("toast-git-error"))),
+                                                                                Err(e) => toaster.error(format!("{msg_error}: {e}")),
                                                                             }
                                                                         });
                                                                     }
@@ -268,13 +287,15 @@ pub fn BranchesTab() -> impl IntoView {
                                                                         let project_name2 = project.name.clone();
                                                                         let branch = branch_delete.clone();
                                                                         let branch_msg = branch.clone();
+                                                                        let msg_deleted = tr!("toast-git-branch-deleted", { "branch" => branch_msg });
+                                                                        let msg_error = tr!("toast-git-error");
                                                                         spawn_local(async move {
                                                                             match commands::git_delete_branch(&project_name, &branch).await {
                                                                                 Ok(_) => {
-                                                                                    toaster.success(tr!("toast-git-branch-deleted", { "branch" => branch_msg }));
+                                                                                    toaster.success(msg_deleted);
                                                                                     git_ctx.load_branches(project_name2);
                                                                                 }
-                                                                                Err(e) => toaster.error(format!("{}: {e}", tr!("toast-git-error"))),
+                                                                                Err(e) => toaster.error(format!("{msg_error}: {e}")),
                                                                             }
                                                                         });
                                                                     }
@@ -322,7 +343,7 @@ pub fn BranchesTab() -> impl IntoView {
                 <div class="fixed inset-0 z-50 bg-black/50" on:click=move |_| create_open.set(false) />
                 <div class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 bg-background border rounded-2xl shadow-lg p-6 w-full max-w-md">
                     <h3 class="text-lg leading-none font-semibold mb-4">{tr!("git-create-branch-title")}</h3>
-                    <Input placeholder=tr!("git-branch-name-placeholder") bind_value=new_branch_name />
+                    <Input placeholder=tr!("git-branch-name-placeholder") bind_value=new_branch_name node_ref=branch_input_ref />
                     <div class="flex flex-row gap-2 justify-end mt-4">
                         <Button variant=ButtonVariant::Outline on:click=move |_| create_open.set(false)>
                             {tr!("action-cancel")}

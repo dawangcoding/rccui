@@ -208,11 +208,23 @@ async fn _git_diff(project: &str, file: &str) -> Result<Value, AppError> {
     let path = resolve_project_path(project).await?;
     validate_file_path(file, &path)?;
 
-    let mut output = run_git_lossy(&path, &["diff", "--", file]).await?;
-    let staged = run_git_lossy(&path, &["diff", "--cached", "--", file]).await?;
-    if !staged.is_empty() {
-        output.push_str(&staged);
-    }
+    // Check if file is untracked
+    let is_untracked = run_git(&path, &["ls-files", "--error-unmatch", file])
+        .await
+        .is_err();
+
+    let mut output = if is_untracked {
+        // For untracked files, git diff produces nothing.
+        // Use --no-index to show the full file content as additions.
+        run_git_lossy(&path, &["diff", "--no-index", "/dev/null", file]).await?
+    } else {
+        let mut out = run_git_lossy(&path, &["diff", "--", file]).await?;
+        let staged = run_git_lossy(&path, &["diff", "--cached", "--", file]).await?;
+        if !staged.is_empty() {
+            out.push_str(&staged);
+        }
+        out
+    };
 
     let max_len = 500_000;
     let is_truncated = output.len() > max_len;
