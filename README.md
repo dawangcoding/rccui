@@ -19,7 +19,7 @@
 - **多 Provider 实时聊天**: 通过 CLI spawner 与 Claude/Cursor/Codex/Gemini 实时交互，支持流式文本输出、思考过程展示、工具调用/结果渲染、权限确认对话
 - **会话管理**: 会话历史记录持久化与命名，点击会话条目即可加载完整历史消息
 - **交互式终端**: 基于 xterm.js + PTY 的全功能终端，支持 ANSI 渲染、分离/重连、5000 行回放缓冲、OAuth URL 检测
-- **文件浏览与编辑**: 递归文件树、文本文件打开/编辑/保存、图片预览、未保存状态提示、保存成功/失败 toast、`Cmd/Ctrl + S` 快捷保存、`Tab` 转 4 空格
+- **文件浏览与编辑**: 递归文件树、CodeMirror 文本编辑（失败自动回退 textarea）、语法高亮、图片预览、未保存状态提示、保存成功/失败 toast、`Cmd/Ctrl + S` 快捷保存
 - **项目文件监控**: 监听 Provider 目录变更 (`~/.claude/.cursor/.codex/.gemini`)，自动刷新项目列表
 - **API 密钥管理**: 多 Provider 凭据存储与管理
 - **MCP 服务器管理**: Model Context Protocol 服务器配置
@@ -109,10 +109,11 @@ src-tauri/src/                  # 后端 (Tauri)
     └── gemini/                 # Gemini 适配
 
 public/                         # 静态资源
-├── app/                        # JS 依赖 (xterm.bundle.js, xterm.css)
+├── app/                        # JS 依赖 (xterm/codemirror bundles + css)
 ├── hooks/                      # JS hooks 依赖
 scripts/                        # 构建脚本
 ├── xterm_entry.js              # xterm.js esbuild 入口
+├── codemirror_entry.js         # CodeMirror esbuild 入口
 styles.css                      # Tailwind 入口文件 (主题变量源)
 index.html                      # HTML 模板 (Trunk 入口)
 docs/dev/                       # 开发文档
@@ -177,16 +178,17 @@ Tauri Commands (shell_init/shell_input/shell_resize/shell_detach)
 
 ### 文件编辑器
 
-当前文件编辑器的稳定实现使用原生 `textarea`，位于 `src/features/files/file_editor.rs`，用于规避 Tauri/WebKit 下富文本编辑器渲染空白的问题。现阶段主路径能力包括：
+当前文件编辑器位于 `src/features/files/file_editor.rs`，默认使用 CodeMirror 6，并在初始化失败时自动回退到原生 `textarea`。现阶段能力包括：
 
 - 文本文件读取、编辑与保存
 - 图片文件预览（不进入文本编辑器）
 - `Cmd/Ctrl + S` 保存
 - 保存成功/失败 toast
 - 未保存状态提示
-- `Tab` 自动插入 4 个空格，`tab-size: 4`
+- 语法高亮（按文件扩展名映射语言）
+- 主题跟随应用明暗模式切换（浅色 `github-light` / 深色 `github-dark`）
 
-如果后续重新接回增强编辑器，建议单独迭代，不要与终端或布局修复混在同一次改动里。
+如果后续继续增强编辑器功能，建议单独迭代，不要与终端或布局修复混在同一次改动里。
 
 ## 开发指南
 

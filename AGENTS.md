@@ -35,7 +35,7 @@ src/                                # Frontend (Leptos WASM)
 │   ├── files/                      # File browser + editor
 │   │   ├── files_panel.rs          # File panel wrapper (tree + editor split)
 │   │   ├── file_tree.rs            # Recursive file tree and file selection
-│   │   ├── file_editor.rs          # Stable textarea-based text editor
+│   │   ├── file_editor.rs          # CodeMirror editor (with textarea fallback)
 │   │   └── image_preview.rs        # Image file preview
 │   ├── git/                        # Git operations (placeholder)
 │   ├── onboarding/                 # First-time setup
@@ -107,10 +107,13 @@ src-tauri/src/                      # Backend (Tauri)
 public/                             # Static assets + JS dependencies
 ├── app/                            # xterm.js / editor assets
 │   ├── xterm.bundle.js             # esbuild IIFE output (from scripts/xterm_entry.js)
-│   └── xterm.css                   # xterm.js stylesheet
+│   ├── xterm.css                   # xterm.js stylesheet
+│   ├── codemirror.bundle.js        # esbuild IIFE output (from scripts/codemirror_entry.js)
+│   └── codemirror.css              # CodeMirror stylesheet
 ├── hooks/                          # JS hooks for some UI components
 scripts/                            # Build scripts
 ├── xterm_entry.js                  # xterm.js esbuild entry (imports @xterm/xterm + addons)
+├── codemirror_entry.js             # CodeMirror esbuild entry (langs/themes/bridge)
 styles.css                          # Tailwind entry (source of truth for theme)
 index.html                          # Trunk entry
 docs/dev/                           # Development plans
@@ -321,13 +324,15 @@ Frontend listens to `chat_response` Tauri events via `ChatContext` (`src/state/c
 | `editor_dirty` | 未保存状态 |
 | `editor_loading` | 文件读取中的加载状态 |
 
-当前稳定实现使用 `src/features/files/file_editor.rs` 的**原生 `textarea` 编辑器**，不是 CodeMirror。它支持：
+当前实现使用 `src/features/files/file_editor.rs` 的**CodeMirror 6 编辑器**作为主路径，初始化失败时自动回退到原生 `textarea`。能力包括：
 
 - 文本文件内容展示与编辑
 - `Cmd/Ctrl + S` 保存
 - 保存成功/失败 toast
 - 明显的未保存状态提示
 - `Tab` 插入 4 个空格，`tab-size: 4`
+- 语法高亮（按扩展名切语言）
+- 主题随应用明暗模式切换：浅色 `@ddietr/codemirror-themes/github-light`，深色 `@ddietr/codemirror-themes/github-dark`
 
 图片文件走 `image_preview.rs`，不进入文本编辑器。
 
@@ -594,7 +599,7 @@ After applying a DESIGN.md:
 - `ui_config.toml` uses relative path: `base_path_components = "src/components"` (no leading slash)
 - Backend commands are registered in `src-tauri/src/lib.rs` via `invoke_handler(tauri::generate_handler![...])`
 - When adding new commands, remember to both create the function and register it in `lib.rs`
-- 当前文件编辑器的稳定版本是原生 `textarea`；仓库里虽然保留了 CodeMirror 相关资源，但不要默认假设它是线上主路径
+- 当前文件编辑器默认主路径是 CodeMirror（带自动 `textarea` 回退）；改动时优先保持终端模块隔离，不要引入全局键盘监听
 
 ## Leptos 0.8 CSR Pitfalls & Solutions
 
@@ -659,7 +664,7 @@ spawn_local(async move {
 
 **稳妥策略**:
 - 可先尝试 `ResizeObserver` + 显式像素尺寸同步
-- 如果仍不稳定，优先回退到原生 `textarea`，先保证查看、编辑、保存功能可用
+- 如果仍不稳定，保留自动回退到原生 `textarea`，先保证查看、编辑、保存功能可用
 - 等主路径稳定后，再单独重做增强编辑器，不要和终端修复混在同一轮里
 
 ## Non-Copy 类型在 view! 多闭包中的传递
