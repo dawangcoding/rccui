@@ -24,7 +24,8 @@ import { sql } from "@codemirror/lang-sql";
 import { yaml } from "@codemirror/lang-yaml";
 
 // Theme
-import { oneDark } from "@codemirror/theme-one-dark";
+import { githubLight } from "@ddietr/codemirror-themes/github-light";
+import { githubDark } from "@ddietr/codemirror-themes/github-dark";
 
 const instances = new Map();
 
@@ -96,58 +97,6 @@ function extToLang(ext) {
 }
 
 /**
- * Build a light theme from CSS custom properties.
- */
-function buildLightTheme() {
-  const style = getComputedStyle(document.documentElement);
-  const get = (prop) => {
-    const val = style.getPropertyValue(prop).trim();
-    return val || undefined;
-  };
-
-  const bg = get("--background") || "#ffffff";
-  const fg = get("--foreground") || "#1a1a1a";
-  const muted = get("--muted") || "#f5f5f5";
-  const border = get("--border") || "#e5e5e5";
-  const accent = get("--accent") || "#f0f0f0";
-  const ring = get("--ring") || "#3b82f6";
-
-  return EditorView.theme({
-    "&": {
-      backgroundColor: bg,
-      color: fg,
-    },
-    ".cm-content": {
-      caretColor: fg,
-    },
-    ".cm-cursor, .cm-dropCursor": {
-      borderLeftColor: fg,
-    },
-    "&.cm-focused .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection": {
-      backgroundColor: accent,
-    },
-    ".cm-gutters": {
-      backgroundColor: bg,
-      color: get("--muted-foreground") || "#999",
-      borderRight: `1px solid ${border}`,
-    },
-    ".cm-activeLineGutter": {
-      backgroundColor: muted,
-    },
-    ".cm-activeLine": {
-      backgroundColor: muted,
-    },
-    ".cm-foldPlaceholder": {
-      backgroundColor: accent,
-      border: "none",
-    },
-    "&.cm-focused": {
-      outline: "none",
-    },
-  }, { dark: false });
-}
-
-/**
  * Get base extensions shared by all editor instances.
  */
 function getBaseExtensions() {
@@ -214,7 +163,7 @@ window.CodeMirrorBridge = {
     const extensions = [
       ...getBaseExtensions(),
       langCompartment.of(langExt ? [langExt] : []),
-      themeCompartment.of(isDark ? [oneDark] : [buildLightTheme()]),
+      themeCompartment.of(isDark ? [githubDark] : [githubLight]),
       readOnlyCompartment.of(EditorState.readOnly.of(opts.readOnly || false)),
       EditorView.theme({
         "&": {
@@ -370,7 +319,7 @@ window.CodeMirrorBridge = {
    */
   setTheme(id) {
     const isDark = document.documentElement.classList.contains("dark");
-    const newTheme = isDark ? [oneDark] : [buildLightTheme()];
+    const newTheme = isDark ? [githubDark] : [githubLight];
 
     if (id) {
       const inst = instances.get(id);
