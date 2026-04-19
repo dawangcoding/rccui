@@ -8,6 +8,7 @@ use crate::ui::spinner::Spinner;
 
 use super::branches_tab::BranchesTab;
 use super::changes_tab::ChangesTab;
+use super::github_tab::GitHubTab;
 use super::history_tab::HistoryTab;
 
 /// Main Git panel with Changes/History/Branches sub-tabs.
@@ -88,6 +89,20 @@ pub fn GitPanel() -> impl IntoView {
                         <button class={move || tab_class(GitTab::Branches)} on:click=move |_| git_ctx.active_tab.set(GitTab::Branches)>
                             {tr!("git-branches")}
                         </button>
+                        <button class={move || tab_class(GitTab::GitHub)} on:click=move |_| {
+                            git_ctx.active_tab.set(GitTab::GitHub);
+                            // Lazy load: fetch when tab is clicked and data not already loaded
+                            let has_info = git_ctx.github_info.get_untracked().is_some();
+                            let is_loading = git_ctx.github_loading.get_untracked();
+                            let is_no_remote = git_ctx.github_no_remote.get_untracked();
+                            if !has_info && !is_loading && !is_no_remote {
+                                if let Some(project) = ctx.selected_project.get_untracked() {
+                                    git_ctx.load_github_info(project.name.clone());
+                                }
+                            }
+                        }>
+                            {tr!("git-github")}
+                        </button>
                     </div>
 
                     // Refresh button
@@ -108,7 +123,7 @@ pub fn GitPanel() -> impl IntoView {
 
                     // Loading indicator
                     {move || {
-                        if git_ctx.status_loading.get() || git_ctx.op_loading.get() {
+                        if git_ctx.status_loading.get() || git_ctx.op_loading.get() || git_ctx.github_loading.get() {
                             view! { <Spinner class="size-4" /> }.into_any()
                         } else {
                             view! {}.into_any()
@@ -146,6 +161,7 @@ pub fn GitPanel() -> impl IntoView {
                     GitTab::Changes => view! { <ChangesTab /> }.into_any(),
                     GitTab::History => view! { <HistoryTab /> }.into_any(),
                     GitTab::Branches => view! { <BranchesTab /> }.into_any(),
+                    GitTab::GitHub => view! { <GitHubTab /> }.into_any(),
                 }
             }}
         </div>

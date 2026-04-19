@@ -81,6 +81,8 @@ pub fn run() {
             commands::git::git_publish,
             commands::git::git_discard,
             commands::git::git_delete_untracked,
+            commands::git::gh_repo_view,
+            commands::git::gh_repo_create,
             // User commands
             commands::user::get_git_config,
             commands::user::update_git_config,

@@ -393,6 +393,69 @@ pub struct GitOpResponse {
     pub message: Option<String>,
 }
 
+// ─── GitHub Types ────────────────────────────────────────────────────────────
+
+/// GitHub repository info from `gh repo view --json`.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GitHubRepoInfo {
+    pub name: String,
+    #[serde(default)]
+    pub description: String,
+    pub url: String,
+    #[serde(default)]
+    pub homepage_url: Option<String>,
+    pub owner: GitHubOwner,
+    #[serde(default)]
+    pub default_branch_ref: Option<GitHubBranchRef>,
+    #[serde(default)]
+    pub stargazer_count: u32,
+    #[serde(default)]
+    pub fork_count: u32,
+    #[serde(default)]
+    pub is_private: bool,
+    #[serde(default)]
+    pub primary_language: Option<GitHubLanguage>,
+    #[serde(default)]
+    pub repository_topics: Vec<GitHubTopic>,
+    #[serde(default)]
+    pub created_at: String,
+    #[serde(default)]
+    pub updated_at: String,
+    #[serde(default)]
+    pub disk_usage: Option<u64>,
+    #[serde(default)]
+    pub license_info: Option<GitHubLicense>,
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
+pub struct GitHubOwner {
+    pub login: String,
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
+pub struct GitHubBranchRef {
+    pub name: String,
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
+pub struct GitHubLanguage {
+    pub name: String,
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
+pub struct GitHubTopic {
+    pub name: String,
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GitHubLicense {
+    pub name: String,
+    #[serde(default)]
+    pub spdx_id: Option<String>,
+}
+
 // ─── App Tab ─────────────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]

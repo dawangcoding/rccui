@@ -681,3 +681,113 @@ async fn _git_delete_untracked(body: DiscardRequest) -> Result<Value, AppError> 
 
     Ok(json!({ "success": true, "message": "File deleted" }))
 }
+
+// ─── GitHub CLI (gh) ─────────────────────────────────────────────────────────
+
+/// Run gh CLI command in project directory.
+async fn run_gh(path: &std::path::Path, args: &[&str]) -> Result<String, AppError> {
+    let output = Command::new("gh")
+        .args(args)
+        .current_dir(path)
+        .output()
+        .await
+        .map_err(|e| {
+            if e.kind() == std::io::ErrorKind::NotFound {
+                AppError::BadRequest("GitHub CLI (gh) is not installed".into())
+            } else {
+                AppError::Internal(e.into())
+            }
+        })?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+        let stderr_lower = stderr.to_lowercase();
+        if stderr_lower.contains("not logged") || stderr_lower.contains("auth") {
+            return Err(AppError::BadRequest(
+                "GitHub CLI not authenticated. Run 'gh auth login' in terminal".into(),
+            ));
+        }
+        if stderr_lower.contains("not a github")
+            || stderr_lower.contains("no github")
+            || stderr_lower.contains("none of the git remotes")
+            || stderr_lower.contains("no git remotes")
+        {
+            return Err(AppError::BadRequest(
+                "NO_GITHUB_REMOTE".into(),
+            ));
+        }
+        return Err(AppError::Internal(anyhow::anyhow!(
+            "gh command failed: {}",
+            stderr.trim()
+        )));
+    }
+
+    Ok(String::from_utf8_lossy(&output.stdout).to_string())
+}
+
+#[tauri::command]
+pub async fn gh_repo_view(
+    _state: tauri::State<'_, Arc<AppState>>,
+    project: String,
+) -> Result<Value, String> {
+    async fn _fn(project: &str) -> Result<Value, AppError> {
+        let path = resolve_project_path(project).await?;
+        let json_fields = "name,owner,description,url,homepageUrl,defaultBranchRef,\
+            stargazerCount,forkCount,isPrivate,primaryLanguage,repositoryTopics,\
+            createdAt,updatedAt,diskUsage,licenseInfo";
+        let output = run_gh(&path, &["repo", "view", "--json", json_fields]).await?;
+        let value: Value =
+            serde_json::from_str(&output).map_err(|e| AppError::Internal(e.into()))?;
+        Ok(value)
+    }
+    _fn(&project).await.map_err(|e| e.to_string())
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GhRepoCreateRequest {
+    pub project: String,
+    pub name: String,
+    #[serde(default)]
+    pub description: String,
+    #[serde(default)]
+    pub is_private: bool,
+    #[serde(default = "default_true")]
+    pub push: bool,
+}
+
+fn default_true() -> bool {
+    true
+}
+
+#[tauri::command]
+pub async fn gh_repo_create(
+    _state: tauri::State<'_, Arc<AppState>>,
+    body: GhRepoCreateRequest,
+) -> Result<Value, String> {
+    async fn _fn(body: &GhRepoCreateRequest) -> Result<Value, AppError> {
+        let path = resolve_project_path(&body.project).await?;
+
+        let mut args = vec!["repo", "create", &body.name, "--source=."];
+
+        if body.is_private {
+            args.push("--private");
+        } else {
+            args.push("--public");
+        }
+
+        let desc_flag;
+        if !body.description.is_empty() {
+            desc_flag = format!("--description={}", body.description);
+            args.push(&desc_flag);
+        }
+
+        if body.push {
+            args.push("--push");
+        }
+
+        let output = run_gh(&path, &args).await?;
+        Ok(json!({ "success": true, "output": output.trim() }))
+    }
+    _fn(&body).await.map_err(|e| e.to_string())
+}

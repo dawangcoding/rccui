@@ -2,7 +2,7 @@ use leptos::prelude::*;
 use leptos::task::spawn_local;
 
 use crate::tauri::commands;
-use crate::tauri::types::{GitBranches, GitCommit, GitRemoteStatus, GitStatus};
+use crate::tauri::types::{GitBranches, GitCommit, GitHubRepoInfo, GitRemoteStatus, GitStatus};
 
 // ─── Git Sub-Tab ─────────────────────────────────────────────────────────────
 
@@ -12,6 +12,7 @@ pub enum GitTab {
     Changes,
     History,
     Branches,
+    GitHub,
 }
 
 // ─── GitContext ──────────────────────────────────────────────────────────────
@@ -49,6 +50,12 @@ pub struct GitContext {
     pub error_message: RwSignal<Option<String>>,
     /// Whether a git operation (commit/push/pull etc.) is in progress
     pub op_loading: RwSignal<bool>,
+    /// GitHub repository info from `gh` CLI
+    pub github_info: RwSignal<Option<GitHubRepoInfo>>,
+    /// Whether GitHub info is loading
+    pub github_loading: RwSignal<bool>,
+    /// Whether the project has no GitHub remote (triggers create repo form)
+    pub github_no_remote: RwSignal<bool>,
 }
 
 impl GitContext {
@@ -69,6 +76,9 @@ impl GitContext {
             commit_diff_content: RwSignal::new(None),
             error_message: RwSignal::new(None),
             op_loading: RwSignal::new(false),
+            github_info: RwSignal::new(None),
+            github_loading: RwSignal::new(false),
+            github_no_remote: RwSignal::new(false),
         }
     }
 
@@ -157,6 +167,27 @@ impl GitContext {
         self.commit_diff_content.set(None);
     }
 
+    /// Load GitHub repository info via `gh` CLI.
+    pub fn load_github_info(&self, project: String) {
+        let ctx = *self;
+        ctx.github_loading.set(true);
+        ctx.error_message.set(None);
+        ctx.github_no_remote.set(false);
+        spawn_local(async move {
+            match commands::gh_repo_view(&project).await {
+                Ok(info) => ctx.github_info.set(Some(info)),
+                Err(e) => {
+                    if e.contains("NO_GITHUB_REMOTE") {
+                        ctx.github_no_remote.set(true);
+                    } else {
+                        ctx.error_message.set(Some(e));
+                    }
+                }
+            }
+            ctx.github_loading.set(false);
+        });
+    }
+
     /// Reset all state (called when switching projects).
     pub fn clear(&self) {
         self.active_tab.set(GitTab::Changes);
@@ -174,5 +205,8 @@ impl GitContext {
         self.commit_diff_content.set(None);
         self.error_message.set(None);
         self.op_loading.set(false);
+        self.github_info.set(None);
+        self.github_loading.set(false);
+        self.github_no_remote.set(false);
     }
 }

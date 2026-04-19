@@ -778,3 +778,53 @@ pub async fn git_delete_untracked(project: &str, file: &str) -> Result<GitOpResp
     )
     .await
 }
+
+// ─── GitHub CLI Commands ─────────────────────────────────────────────────────
+
+pub async fn gh_repo_view(project: &str) -> Result<GitHubRepoInfo, String> {
+    call(
+        "gh_repo_view",
+        &GitProjectArgs {
+            project: project.to_string(),
+        },
+    )
+    .await
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct GhRepoCreateArgs {
+    body: GhRepoCreateBody,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct GhRepoCreateBody {
+    project: String,
+    name: String,
+    description: String,
+    is_private: bool,
+    push: bool,
+}
+
+pub async fn gh_repo_create(
+    project: &str,
+    name: &str,
+    description: &str,
+    is_private: bool,
+    push: bool,
+) -> Result<GitOpResponse, String> {
+    call(
+        "gh_repo_create",
+        &GhRepoCreateArgs {
+            body: GhRepoCreateBody {
+                project: project.to_string(),
+                name: name.to_string(),
+                description: description.to_string(),
+                is_private,
+                push,
+            },
+        },
+    )
+    .await
+}
