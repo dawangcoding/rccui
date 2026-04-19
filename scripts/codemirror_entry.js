@@ -24,8 +24,8 @@ import { sql } from "@codemirror/lang-sql";
 import { yaml } from "@codemirror/lang-yaml";
 
 // Theme
-import { githubLight } from "@ddietr/codemirror-themes/github-light";
-import { githubDark } from "@ddietr/codemirror-themes/github-dark";
+import { vsCodeLight } from "@fsegurai/codemirror-theme-vscode-light";
+import { vsCodeDark } from "@fsegurai/codemirror-theme-vscode-dark";
 
 const instances = new Map();
 
@@ -163,7 +163,7 @@ window.CodeMirrorBridge = {
     const extensions = [
       ...getBaseExtensions(),
       langCompartment.of(langExt ? [langExt] : []),
-      themeCompartment.of(isDark ? [githubDark] : [githubLight]),
+      themeCompartment.of(isDark ? [vsCodeDark] : [vsCodeLight]),
       readOnlyCompartment.of(EditorState.readOnly.of(opts.readOnly || false)),
       EditorView.theme({
         "&": {
@@ -319,7 +319,7 @@ window.CodeMirrorBridge = {
    */
   setTheme(id) {
     const isDark = document.documentElement.classList.contains("dark");
-    const newTheme = isDark ? [githubDark] : [githubLight];
+    const newTheme = isDark ? [vsCodeDark] : [vsCodeLight];
 
     if (id) {
       const inst = instances.get(id);
