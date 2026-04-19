@@ -19,6 +19,7 @@
 - **多 Provider 实时聊天**: 通过 CLI spawner 与 Claude/Cursor/Codex/Gemini 实时交互，支持流式文本输出、思考过程展示、工具调用/结果渲染、权限确认对话
 - **会话管理**: 会话历史记录持久化与命名，点击会话条目即可加载完整历史消息
 - **交互式终端**: 基于 xterm.js + PTY 的全功能终端，支持 ANSI 渲染、分离/重连、5000 行回放缓冲、OAuth URL 检测
+- **文件浏览与编辑**: 递归文件树、文本文件打开/编辑/保存、图片预览、未保存状态提示、保存成功/失败 toast、`Cmd/Ctrl + S` 快捷保存、`Tab` 转 4 空格
 - **项目文件监控**: 监听 Provider 目录变更 (`~/.claude/.cursor/.codex/.gemini`)，自动刷新项目列表
 - **API 密钥管理**: 多 Provider 凭据存储与管理
 - **MCP 服务器管理**: Model Context Protocol 服务器配置
@@ -66,16 +67,17 @@ src/                            # 前端 (Leptos WASM)
 ├── features/                   # 功能模块
 │   ├── chat/                   # 聊天功能 (面板、消息列表、消息项、输入框、权限对话、Provider 选择)
 │   ├── shell/                  # 终端功能 (xterm.js 集成、PTY 会话管理)
-│   ├── files/                  # 文件浏览
+│   ├── files/                  # 文件树、文本编辑器、图片预览
 │   ├── git/                    # Git 操作
 │   ├── onboarding/             # 引导流程
 │   └── settings/               # 设置
 ├── state/                      # 响应式状态管理
 │   ├── app_state.rs            # 全局状态 (项目、会话、侧边栏)
 │   ├── chat_state.rs           # 聊天状态 (消息、流式处理、事件分发)
+│   ├── file_state.rs           # 文件状态 (树、选中文件、编辑内容、dirty 状态)
 │   ├── session_state.rs        # 会话状态
 │   └── shell_state.rs          # 终端状态
-├── layout/                     # 布局组件 (应用布局、头部、侧边栏)
+├── layout/                     # 布局组件 (应用布局、头部、侧边栏、编辑器侧栏)
 ├── pages/                      # 路由页面 (仪表盘、项目详情、设置、引导)
 ├── tauri/                      # Tauri 桥接 (命令调用、事件监听、类型定义)
 ├── utils/                      # 工具函数
@@ -173,6 +175,19 @@ Tauri Commands (shell_init/shell_input/shell_resize/shell_detach)
 - **事件监听**: `shell_output` / `shell_auth_url` 事件在 `app.rs` 根组件通过 `std::mem::forget` 模式保持 Closure 存活
 - **xterm.js 主题**: 从 CSS 自定义属性自动读取，跟随 light/dark 模式切换
 
+### 文件编辑器
+
+当前文件编辑器的稳定实现使用原生 `textarea`，位于 `src/features/files/file_editor.rs`，用于规避 Tauri/WebKit 下富文本编辑器渲染空白的问题。现阶段主路径能力包括：
+
+- 文本文件读取、编辑与保存
+- 图片文件预览（不进入文本编辑器）
+- `Cmd/Ctrl + S` 保存
+- 保存成功/失败 toast
+- 未保存状态提示
+- `Tab` 自动插入 4 个空格，`tab-size: 4`
+
+如果后续重新接回增强编辑器，建议单独迭代，不要与终端或布局修复混在同一次改动里。
+
 ## 开发指南
 
 - 查看 [AGENTS.md](./AGENTS.md) 获取编码规范和项目配置说明
@@ -183,6 +198,7 @@ Tauri Commands (shell_init/shell_input/shell_resize/shell_detach)
 - 所有颜色使用 OKLCH 主题变量（定义在 `styles.css`），不要在组件中硬编码 hex/rgb 值
 - 暗黑模式通过 `<html>` 根元素的 `.dark` class 驱动，`ThemeMode` hook 管理信号、持久化和 DOM 同步
 - 可用语义化颜色：`primary`, `secondary`, `muted`, `accent`, `destructive`, `success`, `warning`, `info`, `provider-claude/codex/gemini` 等
+- 需要准确保存反馈时，不要在 UI 里“先调用保存、再立刻弹成功 toast”；应等待保存命令真实返回结果后再更新 toast 和 `editor_dirty`
 
 ## 许可证
 

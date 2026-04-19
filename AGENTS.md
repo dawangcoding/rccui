@@ -32,13 +32,18 @@ src/                                # Frontend (Leptos WASM)
 │   ├── shell/                      # Shell feature
 │   │   ├── shell_panel.rs          # Terminal panel wrapper
 │   │   └── terminal.rs             # xterm.js integration
-│   ├── files/                      # File browser (placeholder)
+│   ├── files/                      # File browser + editor
+│   │   ├── files_panel.rs          # File panel wrapper (tree + editor split)
+│   │   ├── file_tree.rs            # Recursive file tree and file selection
+│   │   ├── file_editor.rs          # Stable textarea-based text editor
+│   │   └── image_preview.rs        # Image file preview
 │   ├── git/                        # Git operations (placeholder)
 │   ├── onboarding/                 # First-time setup
 │   └── settings/                   # Settings (placeholder)
 ├── state/                          # Reactive state management
 │   ├── app_state.rs                # AppContext: global signals (projects, sessions, sidebar, etc.)
 │   ├── chat_state.rs               # ChatContext: messages, streaming, event handling
+│   ├── file_state.rs               # FileContext: tree, selected file, editor content/dirty state
 │   ├── session_state.rs            # SessionContext: session list, active session
 │   └── shell_state.rs              # ShellContext: terminal sessions
 ├── layout/                         # Layout components
@@ -100,7 +105,7 @@ src-tauri/src/                      # Backend (Tauri)
 └── migrations/                     # SQLite migration scripts
 
 public/                             # Static assets + JS dependencies
-├── app/                            # xterm.js bundle + CSS
+├── app/                            # xterm.js / editor assets
 │   ├── xterm.bundle.js             # esbuild IIFE output (from scripts/xterm_entry.js)
 │   └── xterm.css                   # xterm.js stylesheet
 ├── hooks/                          # JS hooks for some UI components
@@ -303,6 +308,30 @@ Frontend listens to `chat_response` Tauri events via `ChatContext` (`src/state/c
 **tool_result JSON extraction**: Backend sends `tool_result` as `Option<serde_json::Value>` in the form `{"content": "...", "isError": false}`. The frontend must extract the `content` field (not serialize the whole object), matching the history adapter's behavior in `providers/claude/adapter.rs`.
 
 **Collapsible auto-expand**: During streaming, `MessageList` computes the last collapsible message index and passes `auto_expand=true` to that `MessageItem`. When streaming ends, all collapsibles default to collapsed.
+
+### File Panel / Editor Architecture
+
+文件功能由 `FileContext`（`src/state/file_state.rs`）管理，关键状态是：
+
+| Signal | Purpose |
+|--------|---------|
+| `file_tree` | 当前项目的文件树 |
+| `selected_file` | 当前打开的文件节点 |
+| `editor_content` | 文本编辑器当前内容 |
+| `editor_dirty` | 未保存状态 |
+| `editor_loading` | 文件读取中的加载状态 |
+
+当前稳定实现使用 `src/features/files/file_editor.rs` 的**原生 `textarea` 编辑器**，不是 CodeMirror。它支持：
+
+- 文本文件内容展示与编辑
+- `Cmd/Ctrl + S` 保存
+- 保存成功/失败 toast
+- 明显的未保存状态提示
+- `Tab` 插入 4 个空格，`tab-size: 4`
+
+图片文件走 `image_preview.rs`，不进入文本编辑器。
+
+**重要**：如果需要从 UI 触发保存并准确反馈结果，不要直接在点击事件里“先调用 `file_ctx.save_file()` 再立刻 toast success”。当前更稳的做法是复用 `file_editor.rs` 中的 `save_current_file()`，等待 `commands::save_file()` 返回后再设置 `editor_dirty` 和 toast。
 
 ### Shell/Terminal Architecture (xterm.js + PTY)
 
@@ -565,6 +594,7 @@ After applying a DESIGN.md:
 - `ui_config.toml` uses relative path: `base_path_components = "src/components"` (no leading slash)
 - Backend commands are registered in `src-tauri/src/lib.rs` via `invoke_handler(tauri::generate_handler![...])`
 - When adding new commands, remember to both create the function and register it in `lib.rs`
+- 当前文件编辑器的稳定版本是原生 `textarea`；仓库里虽然保留了 CodeMirror 相关资源，但不要默认假设它是线上主路径
 
 ## Leptos 0.8 CSR Pitfalls & Solutions
 
@@ -618,6 +648,19 @@ spawn_local(async move {
 **问题**: Sidebar（`SidenavContainer`）使用 `fixed z-10` 创建了 stacking context，内部弹出框的 `z-50` 受限于父级的 `z-10`。如果页面内容区也有 `relative z-10`，由于 DOM 顺序（`SidenavInset` 在 `Sidenav` 之后），页面内容会覆盖 sidebar 的弹出框。
 
 **解决方案**: 移除页面内容区不必要的 `z-10`（如 `src/pages/dashboard.rs` 中的内容 section），依靠 DOM 源顺序保证层叠关系。不要给 sidebar 内的弹出框使用 `<Portal>`（会导致 `FnOnce` vs `Fn` 编译错误，因为 Portal children 要求 `Fn`）。
+
+## 文件编辑器（Tauri/WebKit）经验
+
+### CodeMirror 已读到内容但画面空白
+
+**症状**: 文件读取成功，`editor_content` 已有值，日志也显示同步成功，但编辑区域仍然空白。
+
+**结论**: 在 Tauri/WebKit 下，这类问题常常不在“读文件”而在编辑器渲染链路。即使 CodeMirror 实例已创建、内容已写入，也可能因为 WebKit 的布局/渲染问题导致视图空白。
+
+**稳妥策略**:
+- 可先尝试 `ResizeObserver` + 显式像素尺寸同步
+- 如果仍不稳定，优先回退到原生 `textarea`，先保证查看、编辑、保存功能可用
+- 等主路径稳定后，再单独重做增强编辑器，不要和终端修复混在同一轮里
 
 ## Non-Copy 类型在 view! 多闭包中的传递
 

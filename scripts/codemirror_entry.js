@@ -28,6 +28,25 @@ import { oneDark } from "@codemirror/theme-one-dark";
 
 const instances = new Map();
 
+function syncEditorLayout(inst) {
+  if (!inst?.container || !inst?.view) return;
+
+  const rect = inst.container.getBoundingClientRect();
+  const height = Math.max(0, Math.floor(rect.height));
+  const width = Math.max(0, Math.floor(rect.width));
+
+  // WebKit may not treat flex-distributed height as a valid basis for
+  // percentage heights inside CodeMirror. Push concrete pixel sizes from JS.
+  if (height > 0) {
+    inst.view.dom.style.height = `${height}px`;
+  }
+  if (width > 0) {
+    inst.view.dom.style.width = `${width}px`;
+  }
+
+  inst.view.requestMeasure();
+}
+
 /**
  * Get CodeMirror language extension by name.
  */
@@ -83,7 +102,7 @@ function buildLightTheme() {
   const style = getComputedStyle(document.documentElement);
   const get = (prop) => {
     const val = style.getPropertyValue(prop).trim();
-    return val ? `oklch(${val})` : undefined;
+    return val || undefined;
   };
 
   const bg = get("--background") || "#ffffff";
@@ -190,7 +209,7 @@ window.CodeMirrorBridge = {
     }
 
     // Mutable callback holders — set later via onChange()/onSave()
-    const callbackHolder = { onChange: null, onSave: null };
+    const callbackHolder = { onChange: null, onSave: null, suppressChange: false };
 
     const extensions = [
       ...getBaseExtensions(),
@@ -209,7 +228,7 @@ window.CodeMirrorBridge = {
       }),
       // onChange listener — registered at creation, callback set later
       EditorView.updateListener.of((update) => {
-        if (update.docChanged && callbackHolder.onChange) {
+        if (update.docChanged && callbackHolder.onChange && !callbackHolder.suppressChange) {
           callbackHolder.onChange(update.state.doc.toString());
         }
       }),
@@ -235,6 +254,22 @@ window.CodeMirrorBridge = {
       parent: container,
     });
 
+    let resizeObserver = null;
+    const syncLayout = () => syncEditorLayout({ container, view });
+
+    if (typeof ResizeObserver !== "undefined") {
+      resizeObserver = new ResizeObserver(() => {
+        syncLayout();
+      });
+      resizeObserver.observe(container);
+    }
+
+    // Run after mount and after the next frame so late layout settles.
+    syncLayout();
+    requestAnimationFrame(() => {
+      syncLayout();
+    });
+
     instances.set(id, {
       view,
       container,
@@ -242,6 +277,8 @@ window.CodeMirrorBridge = {
       themeCompartment,
       readOnlyCompartment,
       callbackHolder,
+      resizeObserver,
+      syncLayout,
     });
 
     return true;
@@ -255,10 +292,14 @@ window.CodeMirrorBridge = {
   setValue(id, content) {
     const inst = instances.get(id);
     if (!inst) return;
-    const { view } = inst;
+    const { view, callbackHolder } = inst;
+    if (view.state.doc.toString() === content) return;
+    callbackHolder.suppressChange = true;
     view.dispatch({
       changes: { from: 0, to: view.state.doc.length, insert: content },
     });
+    callbackHolder.suppressChange = false;
+    inst.syncLayout();
   },
 
   /**
@@ -317,6 +358,7 @@ window.CodeMirrorBridge = {
   dispose(id) {
     const inst = instances.get(id);
     if (inst) {
+      inst.resizeObserver?.disconnect();
       inst.view.destroy();
       instances.delete(id);
     }
@@ -377,5 +419,12 @@ window.CodeMirrorBridge = {
    */
   has(id) {
     return instances.has(id);
+  },
+
+  syncLayout(id) {
+    const inst = instances.get(id);
+    if (inst) {
+      inst.syncLayout();
+    }
   },
 };

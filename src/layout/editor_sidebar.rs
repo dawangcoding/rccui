@@ -1,7 +1,7 @@
 use leptos::prelude::*;
 use leptos_fluent::tr;
 
-use crate::features::files::file_editor::FileEditor;
+use crate::features::files::file_editor::{save_current_file, FileEditor};
 use crate::features::files::image_preview::ImagePreview;
 use crate::state::file_state::{is_image_file, FileContext};
 use crate::ui::button::{Button, ButtonSize, ButtonVariant};
@@ -19,12 +19,14 @@ pub fn EditorSidebar() -> impl IntoView {
     // Wrap toaster in StoredValue so on_save closure is Copy
     let toaster_save = StoredValue::new(expect_toaster());
     let on_save = StoredValue::new(move |_: web_sys::MouseEvent| {
-        let project = ctx.selected_project.get_untracked();
         let toaster = toaster_save.get_value();
-        if let Some(project) = project {
-            file_ctx.save_file(project.name.clone());
-            toaster.success(tr!("toast-file-saved"));
-        }
+        save_current_file(
+            file_ctx,
+            ctx,
+            toaster,
+            tr!("toast-file-saved"),
+            tr!("toast-file-save-failed"),
+        );
     });
 
     let on_close = StoredValue::new(move |_: web_sys::MouseEvent| {
@@ -66,7 +68,10 @@ pub fn EditorSidebar() -> impl IntoView {
                         {move || {
                             if file_ctx.editor_dirty.get() {
                                 view! {
-                                    <span class="text-xs text-warning shrink-0">{tr!("files-editor-unsaved")}</span>
+                                    <span class="inline-flex items-center rounded-full border border-warning/30 bg-warning/10 px-2 py-0.5 text-[11px] font-medium text-warning shrink-0">
+                                        <span class="mr-1 size-1.5 rounded-full bg-warning" />
+                                        {tr!("files-editor-unsaved")}
+                                    </span>
                                 }.into_any()
                             } else {
                                 view! {}.into_any()
@@ -77,12 +82,18 @@ pub fn EditorSidebar() -> impl IntoView {
                     // Save button (only for text files)
                     {move || {
                         if !is_image.get() {
+                            let is_dirty = file_ctx.editor_dirty.get();
                             view! {
                                 <Button
-                                    variant=ButtonVariant::Ghost
+                                    variant=if is_dirty { ButtonVariant::Outline } else { ButtonVariant::Ghost }
                                     size=ButtonSize::Icon
-                                    class="size-7"
+                                    class=if is_dirty {
+                                        "size-7 border-warning/40 bg-warning/10 text-warning hover:bg-warning/20"
+                                    } else {
+                                        "size-7"
+                                    }
                                     attr:title=tr!("files-editor-save")
+                                    attr:disabled=move || !file_ctx.editor_dirty.get()
                                     on:click=move |e| on_save.with_value(|f| f(e))
                                 >
                                     <icons::Save class="size-4" />
@@ -151,12 +162,29 @@ pub fn EditorSidebar() -> impl IntoView {
                         {move || file_ctx.selected_file.get().as_ref().map(|f| f.path.clone()).unwrap_or_default()}
                     </span>
                     {move || {
+                        if file_ctx.editor_dirty.get() {
+                            view! {
+                                <span class="inline-flex items-center gap-1 text-warning shrink-0">
+                                    <span class="size-1.5 rounded-full bg-warning" />
+                                    {tr!("files-editor-unsaved")}
+                                </span>
+                            }.into_any()
+                        } else {
+                            view! {
+                                <span class="inline-flex items-center gap-1 text-success shrink-0">
+                                    <span class="size-1.5 rounded-full bg-success" />
+                                    {tr!("toast-file-saved")}
+                                </span>
+                            }.into_any()
+                        }
+                    }}
+                    {move || {
                         let lang = file_ctx.selected_file.get().as_ref().map(|f| {
                             crate::state::file_state::get_language_name(&f.name).to_string()
                         }).unwrap_or_default();
                         if !lang.is_empty() {
                             view! {
-                                <span class="ml-auto shrink-0">{lang}</span>
+                                <span class="ml-auto shrink-0 uppercase tracking-wide">{lang}</span>
                             }.into_any()
                         } else {
                             view! {}.into_any()

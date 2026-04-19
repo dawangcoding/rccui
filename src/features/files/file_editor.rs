@@ -1,180 +1,136 @@
+use leptos::ev::{Event, KeyboardEvent};
 use leptos::prelude::*;
-use wasm_bindgen::prelude::*;
+use leptos::task::spawn_local;
 
-use crate::state::file_state::{get_language_name, FileContext};
+use crate::state::{AppContext, FileContext};
+use crate::tauri::commands;
+use crate::ui::toast_custom::_context::ToasterContext;
 
-// ─── CodeMirror Bridge bindings ──────────────────────────────────────────────
+const INDENT: &str = "    ";
 
-#[wasm_bindgen]
-extern "C" {
-    #[wasm_bindgen(js_namespace = ["window", "CodeMirrorBridge"])]
-    fn create(id: &str, container: &web_sys::HtmlElement, opts: &JsValue) -> bool;
+pub fn save_current_file(
+    file_ctx: FileContext,
+    app_ctx: AppContext,
+    toaster: ToasterContext,
+    success_message: String,
+    error_prefix: String,
+) {
+    let Some(project) = app_ctx.selected_project.get_untracked() else {
+        return;
+    };
+    let Some(file) = file_ctx.selected_file.get_untracked() else {
+        return;
+    };
+    let Some(content) = file_ctx.editor_content.get_untracked() else {
+        return;
+    };
 
-    #[wasm_bindgen(js_namespace = ["window", "CodeMirrorBridge"])]
-    fn setValue(id: &str, content: &str);
-
-    #[wasm_bindgen(js_namespace = ["window", "CodeMirrorBridge"])]
-    fn getValue(id: &str) -> String;
-
-    #[wasm_bindgen(js_namespace = ["window", "CodeMirrorBridge"])]
-    fn setLanguage(id: &str, lang_name: &str);
-
-    #[wasm_bindgen(js_namespace = ["window", "CodeMirrorBridge"])]
-    fn onChange(id: &str, callback: &Closure<dyn FnMut(String)>);
-
-    #[wasm_bindgen(js_namespace = ["window", "CodeMirrorBridge"])]
-    fn onSave(id: &str, callback: &Closure<dyn FnMut(String)>);
-
-    #[wasm_bindgen(js_namespace = ["window", "CodeMirrorBridge"])]
-    fn dispose(id: &str);
-
-    #[wasm_bindgen(js_namespace = ["window", "CodeMirrorBridge"])]
-    fn setTheme(id: &str);
-
-    #[wasm_bindgen(js_namespace = ["window", "CodeMirrorBridge"])]
-    fn focus(id: &str);
-
-    #[wasm_bindgen(js_namespace = ["window", "CodeMirrorBridge"])]
-    fn has(id: &str) -> bool;
+    let ctx = file_ctx;
+    spawn_local(async move {
+        match commands::save_file(&project.name, &file.path, &content).await {
+            Ok(_) => {
+                ctx.editor_dirty.set(false);
+                ctx.error_message.set(None);
+                toaster.success(success_message);
+            }
+            Err(e) => {
+                let message = format!("{error_prefix}: {e}");
+                ctx.error_message.set(Some(message.clone()));
+                toaster.error(message);
+            }
+        }
+    });
 }
 
-// ─── FileEditor Component ────────────────────────────────────────────────────
+fn insert_indent_at_cursor(
+    textarea: &web_sys::HtmlTextAreaElement,
+    file_ctx: FileContext,
+) {
+    let value = textarea.value();
+    let start = textarea
+        .selection_start()
+        .ok()
+        .flatten()
+        .unwrap_or(value.len() as u32) as usize;
+    let end = textarea
+        .selection_end()
+        .ok()
+        .flatten()
+        .unwrap_or(start as u32) as usize;
 
-const EDITOR_ID: &str = "cm_editor";
+    let mut next = String::with_capacity(value.len() + INDENT.len());
+    next.push_str(&value[..start]);
+    next.push_str(INDENT);
+    next.push_str(&value[end..]);
 
-/// CodeMirror 6 editor component with wasm_bindgen interop.
-///
-/// Always disposes and recreates the editor when content changes (new file loaded).
-/// This ensures the editor is always attached to the CURRENT container div,
-/// even if Leptos's Show component destroyed and recreated this component.
-///
-/// The onChange → editor_content.set → Effect loop is broken by comparing
-/// getValue() with the signal value: if they match, we skip entirely.
+    textarea.set_value(&next);
+    let caret = (start + INDENT.len()) as u32;
+    let _ = textarea.set_selection_range(caret, caret);
+
+    file_ctx.editor_content.set(Some(next));
+    file_ctx.editor_dirty.set(true);
+}
+
+/// Stable textarea-based editor used as a fallback for Tauri/WebKit.
 #[component]
 pub fn FileEditor() -> impl IntoView {
     let file_ctx = expect_context::<FileContext>();
-    let app_ctx = expect_context::<crate::state::AppContext>();
-    let container_ref = NodeRef::<leptos::html::Div>::new();
+    let app_ctx = expect_context::<AppContext>();
+    let toaster = crate::ui::toast_custom::toaster::expect_toaster();
+    let textarea_ref = NodeRef::<leptos::html::Textarea>::new();
 
-    // Effect: create/update editor when content or selected file changes
+    // Focus after a file finishes loading so keyboard editing feels immediate.
     Effect::new(move || {
-        // Track all dependencies reactively
         let content = file_ctx.editor_content.get();
-        let selected = file_ctx.selected_file.get();
         let loading = file_ctx.editor_loading.get();
-        let container = container_ref.get();
+        if !loading && content.is_some() {
+            if let Some(textarea) = textarea_ref.get() {
+                let _ = textarea.focus();
+            }
+        }
+    });
 
-        web_sys::console::log_1(
-            &format!(
-                "[FileEditor] Effect fired: loading={}, content={}, file={}, container={}, has_editor={}",
-                loading,
-                match &content {
-                    Some(c) => format!("Some({}chars)", c.len()),
-                    None => "None".to_string(),
-                },
-                selected.as_ref().map(|f| f.name.as_str()).unwrap_or("None"),
-                if container.is_some() { "YES" } else { "NO" },
-                has(EDITOR_ID),
-            )
-            .into(),
-        );
+    let on_input = move |ev: Event| {
+        let value = event_target_value(&ev);
+        file_ctx.editor_content.set(Some(value));
+        file_ctx.editor_dirty.set(true);
+    };
 
-        // Wait until loading finishes
-        if loading {
-            web_sys::console::log_1(&"[FileEditor] → skipped (loading=true)".into());
+    let save_success = leptos_fluent::tr!("toast-file-saved");
+    let save_error = leptos_fluent::tr!("toast-file-save-failed");
+    let on_keydown = move |ev: KeyboardEvent| {
+        if ev.key() == "Tab" {
+            ev.prevent_default();
+            if let Some(textarea) = textarea_ref.get_untracked() {
+                insert_indent_at_cursor(&textarea, file_ctx);
+            }
             return;
         }
 
-        if let (Some(content), Some(file), Some(container)) =
-            (content, selected, container)
-        {
-            let lang = get_language_name(&file.name);
-
-            // Guard: if editor exists AND content matches, skip (breaks onChange cycle)
-            if has(EDITOR_ID) {
-                let current = getValue(EDITOR_ID);
-                web_sys::console::log_1(
-                    &format!(
-                        "[FileEditor] Editor exists, getValue={}chars, content={}chars, match={}",
-                        current.len(), content.len(), current == content
-                    ).into(),
-                );
-                if current == content {
-                    web_sys::console::log_1(&"[FileEditor] → skipped (content match)".into());
-                    return;
-                }
-            }
-
-            // Dispose any existing instance
-            if has(EDITOR_ID) {
-                web_sys::console::log_1(&"[FileEditor] Disposing old editor".into());
-                dispose(EDITOR_ID);
-            }
-
-            // Create fresh editor in the CURRENT container
-            web_sys::console::log_1(
-                &format!(
-                    "[FileEditor] Creating editor: {}chars, lang='{}', container_tag={}",
-                    content.len(), lang,
-                    container.tag_name(),
-                ).into(),
+        if ev.key().eq_ignore_ascii_case("s") && (ev.ctrl_key() || ev.meta_key()) {
+            ev.prevent_default();
+            save_current_file(
+                file_ctx,
+                app_ctx,
+                toaster.clone(),
+                save_success.clone(),
+                save_error.clone(),
             );
-            let opts = js_sys::Object::new();
-            let _ = js_sys::Reflect::set(
-                &opts,
-                &JsValue::from_str("value"),
-                &JsValue::from_str(&content),
-            );
-            if !lang.is_empty() {
-                let _ = js_sys::Reflect::set(
-                    &opts,
-                    &JsValue::from_str("language"),
-                    &JsValue::from_str(lang),
-                );
-            }
-
-            let success = create(EDITOR_ID, &container, &opts.into());
-            web_sys::console::log_1(
-                &format!("[FileEditor] create() returned: {}", success).into(),
-            );
-            if success {
-                // Register onChange callback — updates content & dirty state
-                let file_ctx_change = file_ctx;
-                let on_change_closure =
-                    Closure::<dyn FnMut(String)>::new(move |new_content: String| {
-                        file_ctx_change.editor_content.set(Some(new_content));
-                        file_ctx_change.editor_dirty.set(true);
-                    });
-                onChange(EDITOR_ID, &on_change_closure);
-                std::mem::forget(on_change_closure);
-
-                // Register onSave callback (Cmd/Ctrl+S)
-                let file_ctx_save = file_ctx;
-                let app_ctx_save = app_ctx;
-                let on_save_closure =
-                    Closure::<dyn FnMut(String)>::new(move |_content: String| {
-                        let project = app_ctx_save.selected_project.get_untracked();
-                        if let Some(project) = project {
-                            file_ctx_save.save_file(project.name.clone());
-                        }
-                    });
-                onSave(EDITOR_ID, &on_save_closure);
-                std::mem::forget(on_save_closure);
-
-                file_ctx.editor_dirty.set(false);
-                focus(EDITOR_ID);
-            }
         }
-    });
-
-    // Cleanup on unmount
-    on_cleanup(move || {
-        if has(EDITOR_ID) {
-            dispose(EDITOR_ID);
-        }
-    });
+    };
 
     view! {
-        <div node_ref=container_ref class="absolute inset-0 overflow-hidden" />
+        <textarea
+            node_ref=textarea_ref
+            class="absolute inset-0 h-full w-full resize-none border-0 bg-background px-4 py-3 font-mono text-[13px] leading-6 text-foreground outline-none overflow-auto whitespace-pre selection:bg-primary/20 selection:text-foreground [font-variant-ligatures:none]"
+            spellcheck="false"
+            autocapitalize="off"
+            autocomplete="off"
+            wrap="off"
+            style="tab-size: 4;"
+            prop:value=move || file_ctx.editor_content.get().unwrap_or_default()
+            on:input=on_input
+            on:keydown=on_keydown
+        />
     }
 }
