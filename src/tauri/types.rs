@@ -312,6 +312,87 @@ pub struct FileOperationResponse {
     pub new_path: Option<String>,
 }
 
+// ─── Git Types ───────────────────────────────────────────────────────────────
+
+/// Git status response from `git_status` command.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GitStatus {
+    pub branch: String,
+    pub has_commits: bool,
+    pub modified: Vec<String>,
+    pub added: Vec<String>,
+    pub deleted: Vec<String>,
+    pub untracked: Vec<String>,
+}
+
+/// A single commit entry from `git_commits`.
+#[derive(Debug, Clone, Deserialize)]
+pub struct GitCommit {
+    pub hash: String,
+    pub author: String,
+    pub email: String,
+    pub date: String,
+    pub message: String,
+    #[serde(default)]
+    pub stats: Option<String>,
+}
+
+/// Response from `git_commits` command.
+#[derive(Debug, Clone, Default, Deserialize)]
+pub struct GitCommitsResponse {
+    pub commits: Vec<GitCommit>,
+}
+
+/// Response from `git_diff` / `git_commit_diff` commands.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GitDiffResponse {
+    pub diff: String,
+    pub is_truncated: bool,
+}
+
+/// Response from `git_file_with_diff` command.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GitFileWithDiff {
+    pub current_content: String,
+    pub old_content: String,
+    pub is_deleted: bool,
+    pub is_untracked: bool,
+}
+
+/// Response from `git_branches` command.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GitBranches {
+    pub branches: Vec<String>,
+    pub local_branches: Vec<String>,
+    pub remote_branches: Vec<String>,
+}
+
+/// Response from `git_remote_status` command.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GitRemoteStatus {
+    pub has_remote: bool,
+    pub has_upstream: bool,
+    pub branch: String,
+    pub ahead: u32,
+    pub behind: u32,
+    pub is_up_to_date: bool,
+}
+
+/// Generic success response from git mutation commands.
+#[derive(Debug, Clone, Default, Deserialize)]
+pub struct GitOpResponse {
+    pub success: bool,
+    #[serde(default)]
+    pub output: Option<String>,
+    #[serde(default)]
+    pub message: Option<String>,
+}
+
 // ─── App Tab ─────────────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -361,6 +442,6 @@ impl AppTab {
     }
 
     pub fn is_implemented(&self) -> bool {
-        matches!(self, AppTab::Chat | AppTab::Shell | AppTab::Files)
+        matches!(self, AppTab::Chat | AppTab::Shell | AppTab::Files | AppTab::Git)
     }
 }

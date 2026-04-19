@@ -498,3 +498,283 @@ pub async fn delete_file(
     )
     .await
 }
+
+// ─── Git Commands ────────────────────────────────────────────────────────────
+
+#[derive(Serialize)]
+struct GitProjectArgs {
+    project: String,
+}
+
+pub async fn git_status(project: &str) -> Result<GitStatus, String> {
+    call("git_status", &GitProjectArgs { project: project.to_string() }).await
+}
+
+#[derive(Serialize)]
+struct GitDiffArgs {
+    project: String,
+    file: String,
+}
+
+pub async fn git_diff(project: &str, file: &str) -> Result<GitDiffResponse, String> {
+    call(
+        "git_diff",
+        &GitDiffArgs {
+            project: project.to_string(),
+            file: file.to_string(),
+        },
+    )
+    .await
+}
+
+pub async fn git_file_with_diff(project: &str, file: &str) -> Result<GitFileWithDiff, String> {
+    call(
+        "git_file_with_diff",
+        &GitDiffArgs {
+            project: project.to_string(),
+            file: file.to_string(),
+        },
+    )
+    .await
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct GitCommitArgs {
+    body: GitCommitBody,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct GitCommitBody {
+    project: String,
+    message: String,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    files: Vec<String>,
+}
+
+pub async fn git_commit(
+    project: &str,
+    message: &str,
+    files: Vec<String>,
+) -> Result<GitOpResponse, String> {
+    call(
+        "git_commit",
+        &GitCommitArgs {
+            body: GitCommitBody {
+                project: project.to_string(),
+                message: message.to_string(),
+                files,
+            },
+        },
+    )
+    .await
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct GitInitialCommitArgs {
+    body: GitInitialCommitBody,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct GitInitialCommitBody {
+    project: String,
+    #[serde(skip_serializing_if = "String::is_empty")]
+    message: String,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    files: Vec<String>,
+}
+
+pub async fn git_initial_commit(
+    project: &str,
+    message: &str,
+    files: Vec<String>,
+) -> Result<GitOpResponse, String> {
+    call(
+        "git_initial_commit",
+        &GitInitialCommitArgs {
+            body: GitInitialCommitBody {
+                project: project.to_string(),
+                message: message.to_string(),
+                files,
+            },
+        },
+    )
+    .await
+}
+
+pub async fn git_revert_local_commit(project: &str) -> Result<GitOpResponse, String> {
+    call(
+        "git_revert_local_commit",
+        &GitProjectArgs { project: project.to_string() },
+    )
+    .await
+}
+
+pub async fn git_branches(project: &str) -> Result<GitBranches, String> {
+    call("git_branches", &GitProjectArgs { project: project.to_string() }).await
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct GitBranchArgs {
+    body: GitBranchBody,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct GitBranchBody {
+    project: String,
+    branch: String,
+}
+
+pub async fn git_checkout(project: &str, branch: &str) -> Result<GitOpResponse, String> {
+    call(
+        "git_checkout",
+        &GitBranchArgs {
+            body: GitBranchBody {
+                project: project.to_string(),
+                branch: branch.to_string(),
+            },
+        },
+    )
+    .await
+}
+
+pub async fn git_create_branch(project: &str, branch: &str) -> Result<GitOpResponse, String> {
+    call(
+        "git_create_branch",
+        &GitBranchArgs {
+            body: GitBranchBody {
+                project: project.to_string(),
+                branch: branch.to_string(),
+            },
+        },
+    )
+    .await
+}
+
+pub async fn git_delete_branch(project: &str, branch: &str) -> Result<GitOpResponse, String> {
+    call(
+        "git_delete_branch",
+        &GitBranchArgs {
+            body: GitBranchBody {
+                project: project.to_string(),
+                branch: branch.to_string(),
+            },
+        },
+    )
+    .await
+}
+
+#[derive(Serialize)]
+struct GitCommitsArgs {
+    project: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    limit: Option<u32>,
+}
+
+pub async fn git_commits(
+    project: &str,
+    limit: Option<u32>,
+) -> Result<GitCommitsResponse, String> {
+    call(
+        "git_commits",
+        &GitCommitsArgs {
+            project: project.to_string(),
+            limit,
+        },
+    )
+    .await
+}
+
+#[derive(Serialize)]
+struct GitCommitDiffArgs {
+    project: String,
+    commit: String,
+}
+
+pub async fn git_commit_diff(project: &str, commit: &str) -> Result<GitDiffResponse, String> {
+    call(
+        "git_commit_diff",
+        &GitCommitDiffArgs {
+            project: project.to_string(),
+            commit: commit.to_string(),
+        },
+    )
+    .await
+}
+
+pub async fn git_remote_status(project: &str) -> Result<GitRemoteStatus, String> {
+    call(
+        "git_remote_status",
+        &GitProjectArgs { project: project.to_string() },
+    )
+    .await
+}
+
+pub async fn git_fetch(project: &str) -> Result<GitOpResponse, String> {
+    call("git_fetch", &GitProjectArgs { project: project.to_string() }).await
+}
+
+pub async fn git_pull(project: &str) -> Result<GitOpResponse, String> {
+    call("git_pull", &GitProjectArgs { project: project.to_string() }).await
+}
+
+pub async fn git_push(project: &str) -> Result<GitOpResponse, String> {
+    call("git_push", &GitProjectArgs { project: project.to_string() }).await
+}
+
+pub async fn git_publish(project: &str, branch: &str) -> Result<GitOpResponse, String> {
+    call(
+        "git_publish",
+        &GitBranchArgs {
+            body: GitBranchBody {
+                project: project.to_string(),
+                branch: branch.to_string(),
+            },
+        },
+    )
+    .await
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct GitDiscardArgs {
+    body: GitDiscardBody,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct GitDiscardBody {
+    project: String,
+    file: String,
+}
+
+pub async fn git_discard(project: &str, file: &str) -> Result<GitOpResponse, String> {
+    call(
+        "git_discard",
+        &GitDiscardArgs {
+            body: GitDiscardBody {
+                project: project.to_string(),
+                file: file.to_string(),
+            },
+        },
+    )
+    .await
+}
+
+pub async fn git_delete_untracked(project: &str, file: &str) -> Result<GitOpResponse, String> {
+    call(
+        "git_delete_untracked",
+        &GitDiscardArgs {
+            body: GitDiscardBody {
+                project: project.to_string(),
+                file: file.to_string(),
+            },
+        },
+    )
+    .await
+}

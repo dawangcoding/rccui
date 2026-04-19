@@ -1,1 +1,5 @@
-// Git feature - will be implemented in Phase 5.
+pub mod branches_tab;
+pub mod changes_tab;
+pub mod diff_viewer;
+pub mod git_panel;
+pub mod history_tab;

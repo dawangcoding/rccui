@@ -3,6 +3,7 @@ use leptos_fluent::tr;
 
 use crate::features::chat::chat_panel::ChatPanel;
 use crate::features::files::files_panel::FilesPanel;
+use crate::features::git::git_panel::GitPanel;
 use crate::features::shell::shell_panel::ShellPanel;
 use crate::state::{AppContext, FileContext};
 use crate::tauri::types::AppTab;
@@ -43,9 +44,7 @@ pub fn ProjectPage() -> impl IntoView {
                                 <FilesPanel />
                             }.into_any(),
                             AppTab::Git => view! {
-                                <div class="flex items-center justify-center flex-1 text-sm text-muted-foreground animate-in fade-in duration-150">
-                                    {tr!("project-git-coming")}
-                                </div>
+                                <GitPanel />
                             }.into_any(),
                         }
                     }
