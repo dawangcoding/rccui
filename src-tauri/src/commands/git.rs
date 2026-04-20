@@ -64,17 +64,25 @@ fn validate_file_path(file: &str, project_path: &PathBuf) -> Result<PathBuf, App
 
 /// Run a git command and return its output.
 async fn run_git(project_path: &PathBuf, args: &[&str]) -> Result<String, AppError> {
+    let cmd_str = format!("git {}", args.join(" "));
+    tracing::debug!(cmd = %cmd_str, path = %project_path.display(), "executing git command");
+
     let output = Command::new("git")
         .args(args)
         .current_dir(project_path)
         .output()
         .await
-        .map_err(|e| AppError::Internal(e.into()))?;
+        .map_err(|e| {
+            tracing::error!(cmd = %cmd_str, error = %e, "failed to spawn git process");
+            AppError::Internal(e.into())
+        })?;
 
     if output.status.success() {
+        tracing::debug!(cmd = %cmd_str, "git command succeeded");
         Ok(String::from_utf8_lossy(&output.stdout).to_string())
     } else {
         let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+        tracing::warn!(cmd = %cmd_str, stderr = %stderr.trim(), "git command failed");
         Err(AppError::Internal(anyhow::anyhow!("git error: {stderr}")))
     }
 }
@@ -590,7 +598,9 @@ pub async fn git_fetch(
 
 async fn _git_fetch(project: &str) -> Result<Value, AppError> {
     let path = resolve_project_path(project).await?;
+    tracing::info!(project = %project, "fetching from remote");
     let output = run_git(&path, &["fetch", "--all"]).await?;
+    tracing::info!(project = %project, "fetch completed");
     Ok(json!({ "success": true, "output": output }))
 }
 
@@ -604,7 +614,9 @@ pub async fn git_pull(
 
 async fn _git_pull(project: &str) -> Result<Value, AppError> {
     let path = resolve_project_path(project).await?;
+    tracing::info!(project = %project, "pulling from remote");
     let output = run_git(&path, &["pull"]).await?;
+    tracing::info!(project = %project, "pull completed");
     Ok(json!({ "success": true, "output": output }))
 }
 
@@ -618,7 +630,27 @@ pub async fn git_push(
 
 async fn _git_push(project: &str) -> Result<Value, AppError> {
     let path = resolve_project_path(project).await?;
-    let output = run_git(&path, &["push"]).await?;
+
+    // Check if current branch has an upstream; if not, push with --set-upstream
+    let has_upstream = Command::new("git")
+        .args(["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"])
+        .current_dir(&path)
+        .output()
+        .await
+        .map(|o| o.status.success())
+        .unwrap_or(false);
+
+    tracing::info!(project = %project, has_upstream = %has_upstream, "pushing to remote");
+    let output = if has_upstream {
+        run_git(&path, &["push"]).await?
+    } else {
+        // Get current branch name
+        let branch = run_git(&path, &["rev-parse", "--abbrev-ref", "HEAD"]).await?;
+        let branch = branch.trim();
+        run_git(&path, &["push", "-u", "origin", branch]).await?
+    };
+    tracing::info!(project = %project, "push completed");
+
     Ok(json!({ "success": true, "output": output }))
 }
 
@@ -633,7 +665,9 @@ pub async fn git_publish(
 async fn _git_publish(body: BranchRequest) -> Result<Value, AppError> {
     let path = resolve_project_path(&body.project).await?;
     validate_ref(&body.branch)?;
+    tracing::info!(project = %body.project, branch = %body.branch, "publishing branch to remote");
     let output = run_git(&path, &["push", "-u", "origin", &body.branch]).await?;
+    tracing::info!(project = %body.project, branch = %body.branch, "branch published");
     Ok(json!({ "success": true, "output": output }))
 }
 
@@ -686,6 +720,9 @@ async fn _git_delete_untracked(body: DiscardRequest) -> Result<Value, AppError> 
 
 /// Run gh CLI command in project directory.
 async fn run_gh(path: &std::path::Path, args: &[&str]) -> Result<String, AppError> {
+    let cmd_str = format!("gh {}", args.join(" "));
+    tracing::debug!(cmd = %cmd_str, path = %path.display(), "executing gh command");
+
     let output = Command::new("gh")
         .args(args)
         .current_dir(path)
@@ -693,8 +730,10 @@ async fn run_gh(path: &std::path::Path, args: &[&str]) -> Result<String, AppErro
         .await
         .map_err(|e| {
             if e.kind() == std::io::ErrorKind::NotFound {
+                tracing::error!("GitHub CLI (gh) not found in PATH");
                 AppError::BadRequest("GitHub CLI (gh) is not installed".into())
             } else {
+                tracing::error!(cmd = %cmd_str, error = %e, "failed to spawn gh process");
                 AppError::Internal(e.into())
             }
         })?;
@@ -702,6 +741,7 @@ async fn run_gh(path: &std::path::Path, args: &[&str]) -> Result<String, AppErro
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr).to_string();
         let stderr_lower = stderr.to_lowercase();
+        tracing::warn!(cmd = %cmd_str, stderr = %stderr.trim(), "gh command failed");
         if stderr_lower.contains("not logged") || stderr_lower.contains("auth") {
             return Err(AppError::BadRequest(
                 "GitHub CLI not authenticated. Run 'gh auth login' in terminal".into(),
@@ -722,6 +762,7 @@ async fn run_gh(path: &std::path::Path, args: &[&str]) -> Result<String, AppErro
         )));
     }
 
+    tracing::debug!(cmd = %cmd_str, "gh command succeeded");
     Ok(String::from_utf8_lossy(&output.stdout).to_string())
 }
 
@@ -732,6 +773,7 @@ pub async fn gh_repo_view(
 ) -> Result<Value, String> {
     async fn _fn(project: &str) -> Result<Value, AppError> {
         let path = resolve_project_path(project).await?;
+        tracing::info!(project = %project, "loading GitHub repo info");
         let json_fields = "name,owner,description,url,homepageUrl,defaultBranchRef,\
             stargazerCount,forkCount,isPrivate,primaryLanguage,repositoryTopics,\
             createdAt,updatedAt,diskUsage,licenseInfo";
@@ -780,6 +822,7 @@ pub async fn gh_repo_create(
 ) -> Result<Value, String> {
     async fn _fn(body: &GhRepoCreateRequest) -> Result<Value, AppError> {
         let path = resolve_project_path(&body.project).await?;
+        tracing::info!(project = %body.project, repo = %body.name, private = %body.is_private, "creating GitHub repository");
 
         let mut args = vec!["repo", "create", &body.name, "--source=."];
 
@@ -800,6 +843,7 @@ pub async fn gh_repo_create(
         }
 
         let output = run_gh(&path, &args).await?;
+        tracing::info!(project = %body.project, repo = %body.name, "GitHub repository created successfully");
         Ok(json!({ "success": true, "output": output.trim() }))
     }
     _fn(&body).await.map_err(|e| e.to_string())
