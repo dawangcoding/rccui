@@ -10,7 +10,7 @@ leptos_router = { version = "0.8" }
 wasm-bindgen = "0.2"
 wasm-bindgen-futures = "0.4"
 js-sys = "0.3"
-web-sys = { version = "0.3", features = ["console", "Window", "Document", "Element", "HtmlElement", "DomRect", "DomTokenList", "CssStyleDeclaration", "HtmlInputElement", "HtmlTextAreaElement", "HtmlSelectElement", "HtmlOptionElement", "HtmlButtonElement", "HtmlFormElement", "HtmlLabelElement", "HtmlCollection", "NodeList", "Node", "Event", "MouseEvent", "KeyboardEvent", "FocusEvent", "TouchEvent", "PointerEvent", "WheelEvent", "AnimationEvent", "TransitionEvent", "UiEvent", "CustomEvent", "DataTransfer", "File", "FileList", "Blob", "Url", "Request", "Response", "Headers", "XmlHttpRequest", "XmlHttpRequestResponseType", "Storage", "Location", "History", "ScrollToOptions", "DomParser", "SupportedType", "MutationObserver", "MutationObserverInit", "Navigator", "Clipboard", "MediaQueryList", "MediaQueryListEvent", "ResizeObserver", "ResizeObserverEntry"] }
+web-sys = { version = "0.3", features = ["console", "Window", "Document", "Element", "HtmlElement", "DomRect", "DomTokenList", "CssStyleDeclaration", "HtmlInputElement", "HtmlTextAreaElement", "HtmlSelectElement", "HtmlOptionElement", "HtmlButtonElement", "HtmlFormElement", "HtmlLabelElement", "HtmlCollection", "NodeList", "Node", "Event", "MouseEvent", "KeyboardEvent", "FocusEvent", "CustomEvent", "Storage", "Location", "History", "MutationObserver", "MutationObserverInit", "Navigator", "Clipboard", "MediaQueryList", "MediaQueryListEvent", "ResizeObserver", "ResizeObserverEntry"] }
 serde = { version = "1", features = ["derive"] }
 serde-wasm-bindgen = "0.6"
 console_error_panic_hook = "0.1.7"
@@ -20,8 +20,6 @@ leptos_ui = "0.3.22"
 heck = "0.5"
 strum = { version = "0.26", features = ["derive"] }
 time = { version = "0.3", features = ["wasm-bindgen"] }
-chrono = { version = "0.4", features = ["wasmbind"] }
-num-traits = "0.2"
 serde_json = "1"
 validator = { version = "0.18", features = ["derive"] }
 leptos-fluent = { version = "0.3", features = ["nightly"] }
@@ -30,3 +28,13 @@ leptos-fluent = { version = "0.3", features = ["nightly"] }
 members = [".", "src-tauri"]
 [package.metadata.leptos]
 tailwind-input-file = "styles.css"
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"
+
+[profile.dev]
+opt-level = 1

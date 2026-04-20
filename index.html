@@ -11,11 +11,18 @@
     <link rel="stylesheet" href="public/app/xterm.css" />
     <link rel="stylesheet" href="public/app/codemirror.css" />
     <link data-trunk rel="copy-dir" href="public" />
-    <link data-trunk rel="rust" data-wasm-opt="z" />
+    <link data-trunk rel="rust" data-wasm-opt="0" />
   </head>
   <body>
+    <div id="app-loading" style="position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;background:#09090b;font-family:Inter,system-ui,sans-serif;">
+      <style>
+        @keyframes spin{to{transform:rotate(360deg)}}
+        @media(prefers-color-scheme:light){#app-loading{background:#fafafa!important}#app-loading .sp{border-color:#e4e4e7!important;border-top-color:#18181b!important}#app-loading .tx{color:#71717a!important}}
+      </style>
+      <div class="sp" style="width:32px;height:32px;border:3px solid #27272a;border-top-color:#a1a1aa;border-radius:50%;animation:spin .8s linear infinite;"></div>
+      <p class="tx" style="margin-top:16px;font-size:13px;color:#71717a;letter-spacing:.02em;">Loading...</p>
+    </div>
     <script src="public/app/xterm.bundle.js"></script>
     <script src="public/app/codemirror.bundle.js"></script>
   </body>
-</html>
 </html>

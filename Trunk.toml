@@ -12,3 +12,8 @@ open = false
 stage = "pre_build"
 command = "npx"
 command_arguments = ["tailwindcss", "-i", "./styles.css", "-o", "./dist/tailwind.css"]
+
+[[hooks]]
+stage = "post_build"
+command = "sh"
+command_arguments = ["-c", "for f in dist/*_bg.wasm; do wasm-opt -Oz --enable-bulk-memory --enable-nontrapping-float-to-int -o \"$f\" \"$f\"; done"]
