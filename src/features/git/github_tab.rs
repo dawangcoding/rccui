@@ -221,18 +221,6 @@ pub fn GitHubTab() -> impl IntoView {
                                         }}
                                     </p>
                                 </div>
-                                <Button
-                                    variant=ButtonVariant::Ghost
-                                    size=ButtonSize::Icon
-                                    class="size-7 shrink-0"
-                                    on:click=move |_| {
-                                        if let Some(project) = ctx.selected_project.get_untracked() {
-                                            git_ctx.load_github_info(project.name.clone());
-                                        }
-                                    }
-                                >
-                                    <icons::RefreshCw class="size-3.5" />
-                                </Button>
                             </div>
 
                             <Separator />
@@ -369,8 +357,10 @@ pub fn GitHubTab() -> impl IntoView {
                                     size=ButtonSize::Sm
                                     class="h-7 text-xs gap-1.5"
                                     on:click=move |_| {
-                                        let _ = web_sys::window()
-                                            .and_then(|w| w.open_with_url_and_target(&url_for_btn, "_blank").ok());
+                                        let url = url_for_btn.clone();
+                                        spawn_local(async move {
+                                            let _ = commands::open_url(&url).await;
+                                        });
                                     }
                                 >
                                     <icons::ExternalLink class="size-3" />

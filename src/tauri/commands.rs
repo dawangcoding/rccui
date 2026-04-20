@@ -779,6 +779,22 @@ pub async fn git_delete_untracked(project: &str, file: &str) -> Result<GitOpResp
     .await
 }
 
+// ─── Opener ──────────────────────────────────────────────────────────────────
+
+#[derive(Serialize)]
+struct OpenUrlArgs {
+    url: String,
+}
+
+pub async fn open_url(url: &str) -> Result<(), String> {
+    let args = serde_wasm_bindgen::to_value(&OpenUrlArgs { url: url.to_string() })
+        .map_err(|e| format!("Serialize error: {e}"))?;
+    invoke("plugin:opener|open_url", args)
+        .await
+        .map_err(|e| e.as_string().unwrap_or_else(|| "Failed to open URL".into()))?;
+    Ok(())
+}
+
 // ─── GitHub CLI Commands ─────────────────────────────────────────────────────
 
 pub async fn gh_repo_view(project: &str) -> Result<GitHubRepoInfo, String> {

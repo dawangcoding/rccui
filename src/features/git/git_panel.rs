@@ -112,9 +112,17 @@ pub fn GitPanel() -> impl IntoView {
                         class="size-7"
                         on:click=move |_| {
                             if let Some(project) = ctx.selected_project.get_untracked() {
-                                git_ctx.load_status(project.name.clone());
-                                git_ctx.load_commits(project.name.clone());
-                                git_ctx.load_branches(project.name.clone());
+                                let name = project.name.clone();
+                                match git_ctx.active_tab.get_untracked() {
+                                    GitTab::GitHub => {
+                                        git_ctx.load_github_info(name);
+                                    }
+                                    _ => {
+                                        git_ctx.load_status(name.clone());
+                                        git_ctx.load_commits(name.clone());
+                                        git_ctx.load_branches(name);
+                                    }
+                                }
                             }
                         }
                     >
