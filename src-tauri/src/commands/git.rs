@@ -736,8 +736,21 @@ pub async fn gh_repo_view(
             stargazerCount,forkCount,isPrivate,primaryLanguage,repositoryTopics,\
             createdAt,updatedAt,diskUsage,licenseInfo";
         let output = run_gh(&path, &["repo", "view", "--json", json_fields]).await?;
-        let value: Value =
+        let mut value: Value =
             serde_json::from_str(&output).map_err(|e| AppError::Internal(e.into()))?;
+
+        // gh CLI returns null for empty arrays/strings; normalize for frontend deserialization
+        if let Value::Object(ref mut map) = value {
+            if map.get("repositoryTopics").is_some_and(Value::is_null) {
+                map.insert("repositoryTopics".to_string(), Value::Array(vec![]));
+            }
+            for key in ["description", "homepageUrl", "createdAt", "updatedAt"] {
+                if map.get(key).is_some_and(Value::is_null) {
+                    map.insert(key.to_string(), Value::String(String::new()));
+                }
+            }
+        }
+
         Ok(value)
     }
     _fn(&project).await.map_err(|e| e.to_string())
